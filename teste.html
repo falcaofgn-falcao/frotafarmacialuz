@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teste Supabase - Frota Luz</title>
+<style>
+body{font-family:system-ui;max-width:600px;margin:40px auto;padding:20px;background:#f8f8f8}
+h1{color:#dc2626;font-size:22px}
+.test{background:white;border:1px solid #e5e5e5;border-radius:12px;padding:16px;margin:12px 0}
+.test h3{font-size:14px;margin-bottom:8px}
+.result{padding:10px;border-radius:8px;font-size:13px;margin-top:8px;word-break:break-all}
+.ok{background:#dcfce7;color:#16a34a}
+.err{background:#fee2e2;color:#dc2626}
+.wait{background:#fef3c7;color:#92400e}
+button{background:#dc2626;color:white;border:none;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;margin:8px 4px 8px 0}
+button:hover{background:#b91c1c}
+</style>
+</head>
+<body>
+<h1>🔧 Teste de Conexão - Frota Luz</h1>
+<p style="color:#737373;font-size:13px">Esta página testa se o Supabase está funcionando corretamente.</p>
+
+<button onclick="runAll()">▶ Rodar Todos os Testes</button>
+<button onclick="limparSW()" style="background:#525252">Limpar Cache/SW</button>
+
+<div class="test" id="t1"><h3>Teste 1: Leitura (GET)</h3><div class="result wait">Aguardando...</div></div>
+<div class="test" id="t2"><h3>Teste 2: Escrita (PATCH)</h3><div class="result wait">Aguardando...</div></div>
+<div class="test" id="t3"><h3>Teste 3: Verificar escrita (GET de novo)</h3><div class="result wait">Aguardando...</div></div>
+<div class="test" id="t4"><h3>Teste 4: Service Worker</h3><div class="result wait">Aguardando...</div></div>
+
+<script>
+const SB_URL="https://lzdkeyxdlxvvfjrikuky.supabase.co/rest/v1";
+const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6ZGtleXhkbHh2dmZqcmlrdWt5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NjgxMTIsImV4cCI6MjA5NjE0NDExMn0.WvWewlt7LuO2KOSOKLmx3lrGC0jOR0T6TiwhMiUA8Zw";
+
+function setResult(id,ok,msg){
+  const el=document.querySelector("#"+id+" .result");
+  el.className="result "+(ok?"ok":"err");
+  el.textContent=msg;
+}
+
+async function test1(){
+  try{
+    const res=await fetch(SB_URL+"/app_data?id=eq.main&select=*",{headers:{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY}});
+    const txt=await res.text();
+    if(res.ok){setResult("t1",true,"✅ HTTP "+res.status+" — Resposta: "+txt.substring(0,200))}
+    else{setResult("t1",false,"❌ HTTP "+res.status+" — "+txt)}
+  }catch(e){setResult("t1",false,"❌ Erro de rede: "+e.message)}
+}
+
+async function test2(){
+  const marca = "teste_"+Date.now();
+  try{
+    const res=await fetch(SB_URL+"/app_data?id=eq.main",{
+      method:"PATCH",
+      headers:{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":"application/json","Prefer":"return=representation"},
+      body:JSON.stringify({updated_at:new Date().toISOString()})
+    });
+    const txt=await res.text();
+    if(res.ok){setResult("t2",true,"✅ HTTP "+res.status+" — Escrita OK! Resposta: "+txt.substring(0,200))}
+    else{setResult("t2",false,"❌ HTTP "+res.status+" — "+txt)}
+  }catch(e){setResult("t2",false,"❌ Erro de rede: "+e.message)}
+}
+
+async function test3(){
+  try{
+    const res=await fetch(SB_URL+"/app_data?id=eq.main&select=updated_at",{headers:{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY}});
+    const rows=await res.json();
+    if(res.ok&&rows.length>0){setResult("t3",true,"✅ Última atualização: "+rows[0].updated_at)}
+    else{setResult("t3",false,"❌ HTTP "+res.status+" — rows: "+JSON.stringify(rows))}
+  }catch(e){setResult("t3",false,"❌ Erro: "+e.message)}
+}
+
+async function test4(){
+  if('serviceWorker' in navigator){
+    const regs=await navigator.serviceWorker.getRegistrations();
+    if(regs.length>0){setResult("t4",true,"⚠️ Service Worker ativo ("+regs.length+"). Se os dados não salvam, clique 'Limpar Cache/SW'")}
+    else{setResult("t4",true,"✅ Nenhum Service Worker ativo")}
+  }else{setResult("t4",true,"✅ Service Worker não suportado — sem interferência")}
+}
+
+async function runAll(){
+  document.querySelectorAll(".result").forEach(el=>{el.className="result wait";el.textContent="Testando..."});
+  await test1();
+  await test2();
+  await test3();
+  await test4();
+}
+
+async function limparSW(){
+  if('serviceWorker' in navigator){
+    const regs=await navigator.serviceWorker.getRegistrations();
+    for(const r of regs){await r.unregister()}
+  }
+  if('caches' in window){
+    const keys=await caches.keys();
+    for(const k of keys){await caches.delete(k)}
+  }
+  alert("✅ Cache e Service Worker removidos! Recarregue a página principal (Ctrl+Shift+R).");
+}
+</script>
+</body>
+</html>

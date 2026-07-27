@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#b91c1c">
+<title>FROTA LUZ - Farmácia Luz</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23dc2626'/><text x='16' y='22' text-anchor='middle' fill='white' font-size='16' font-weight='bold' font-family='sans-serif'>FL</text></svg>">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--red:#dc2626;--red-dark:#b91c1c;--red-light:#fee2e2;--red-50:#fef2f2;--bg:#fefefe;--bg2:#f8f8f8;--bg3:#f1f1f1;--border:#e5e5e5;--text:#1a1a1a;--text2:#525252;--text3:#737373;--text4:#a3a3a3;--white:#fff;--shadow:0 1px 3px rgba(0,0,0,.08);--shadow2:0 4px 12px rgba(0,0,0,.08);--radius:12px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;background:var(--bg2);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer}input,select,textarea{font-family:inherit}
+.app{display:flex;min-height:100vh}
+.sidebar{width:240px;background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;transition:transform .25s ease}
+.sidebar.closed{transform:translateX(-100%)}
+.sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:90;display:none}.sidebar-overlay.show{display:block}
+.main{flex:1;margin-left:240px;min-width:0}
+@media(max-width:768px){.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.main{margin-left:0}}
+.sidebar-header{padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:center}
+.sidebar-header img{width:100%;max-width:180px;height:auto}
+.sidebar-nav{flex:1;padding:12px 10px;overflow-y:auto}
+.nav-btn{display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;border:none;background:transparent;border-radius:10px;color:var(--text2);font-size:13px;font-weight:500;transition:all .15s}
+.nav-btn:hover{background:var(--red-50);color:var(--red)}
+.nav-btn.active{background:var(--red);color:white;font-weight:700}
+.nav-btn svg{width:20px;height:20px;stroke:currentColor;flex-shrink:0}
+.sidebar-footer{padding:8px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:4px}
+.btn-foot{width:100%;padding:5px 6px;border:1px solid var(--border);background:transparent;border-radius:6px;color:var(--text4);font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:4px}
+.btn-foot svg{width:12px;height:12px}
+.btn-foot:hover{border-color:var(--red);color:var(--red)}
+.topbar{display:flex;align-items:center;gap:12px;padding:14px 20px;background:var(--white);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50}
+.topbar h2{font-size:17px;font-weight:700}
+.menu-btn{background:none;border:none;color:var(--text2);width:28px;height:28px;display:none;padding:0}
+@media(max-width:768px){.menu-btn{display:flex;align-items:center;justify-content:center}}
+.topbar-icon{width:22px;height:22px;color:var(--red)}
+.sync-badge{margin-left:auto;font-size:10px;padding:3px 8px;border-radius:6px;font-weight:600;display:flex;align-items:center;gap:4px}
+.sync-ok{background:#dcfce7;color:#16a34a}.sync-saving{background:#fef3c7;color:#d97706}.sync-err{background:var(--red-light);color:var(--red)}.sync-loading{background:#dbeafe;color:#2563eb}
+.content{padding:20px;max-width:960px;margin:0 auto}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:22px}
+.kpi-card{background:var(--white);border-radius:var(--radius);padding:18px;border:1px solid var(--border);position:relative;overflow:hidden;box-shadow:var(--shadow)}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;border-radius:var(--radius) 0 0 var(--radius)}
+.kpi-card.red::before{background:var(--red)}.kpi-card.amber::before{background:#f59e0b}.kpi-card.purple::before{background:#8b5cf6}.kpi-card.green::before{background:#16a34a}
+.kpi-label{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.kpi-value{font-size:24px;font-weight:800;line-height:1.1;margin-bottom:4px}
+.kpi-value.red{color:var(--red)}.kpi-value.amber{color:#f59e0b}.kpi-value.purple{color:#8b5cf6}.kpi-value.green{color:#16a34a}
+.kpi-sub{font-size:11px;color:var(--text4)}
+.section{background:var(--white);border-radius:var(--radius);padding:20px;border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:16px}
+.section-title{font-size:15px;font-weight:700;margin-bottom:16px}
+.list-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--bg3);flex-wrap:wrap}.list-item:last-child{border-bottom:none}
+.list-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.list-icon svg{width:20px;height:20px}
+.list-icon.red{background:var(--red-light);color:var(--red)}.list-icon.amber{background:#fef3c7;color:#f59e0b}.list-icon.purple{background:#ede9fe;color:#8b5cf6}.list-icon.green{background:#dcfce7;color:#16a34a}
+.list-body{flex:1;min-width:120px}.list-body h4{font-size:14px;font-weight:600}.list-body p{font-size:11px;color:var(--text3);margin-top:2px}
+.list-value{font-size:16px;font-weight:700;text-align:right}
+.list-value.red{color:var(--red)}.list-value.amber{color:#f59e0b}.list-value.purple{color:#8b5cf6}
+.btn{padding:10px 18px;border:none;border-radius:10px;font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+.btn svg{width:16px;height:16px}
+.btn-primary{background:var(--red);color:white}.btn-primary:hover{background:var(--red-dark)}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text3)}.btn-ghost:hover{border-color:var(--red);color:var(--red)}
+.btn-icon{padding:6px;border-radius:8px;background:none;border:none;color:var(--text4);width:30px;height:30px;display:flex;align-items:center;justify-content:center}
+.btn-icon:hover{background:var(--bg3);color:var(--red)}.btn-icon svg{width:16px;height:16px}
+.actions-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.actions-bar span{font-size:13px;color:var(--text3)}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(3px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:var(--white);border-radius:16px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;box-shadow:var(--shadow2)}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:20px 24px 0}
+.modal-header h3{font-size:18px;font-weight:700}
+.modal-body{padding:16px 24px 24px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:11px;font-weight:600;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+.field input,.field select{width:100%;padding:10px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none;transition:border .15s}
+.field input:focus,.field select:focus{border-color:var(--red)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.modal-actions{display:flex;gap:10px;margin-top:6px}
+.bar-chart{display:flex;align-items:flex-end;gap:8px;padding:0 4px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.bar-col .val{font-size:10px;color:var(--text3);font-weight:600}
+.bar-col .bar{width:100%;max-width:52px;border-radius:6px 6px 2px 2px;transition:height .5s;min-height:4px}
+.bar-col .lbl{font-size:10px;color:var(--text4);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:64px;text-align:center}
+.progress-bar{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-top:6px}
+.progress-fill{height:100%;border-radius:3px;transition:width .5s}
+.rank-num{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0}
+.rank-1{background:var(--red);color:white}.rank-2{background:var(--bg3);color:var(--text2)}.rank-3{background:var(--bg3);color:var(--text3)}
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.detail-card{background:var(--bg2);border-radius:10px;padding:10px 12px}
+.detail-card .dl{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;margin-bottom:3px}
+.detail-card .dv{font-size:15px;font-weight:700}
+.loading-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:var(--bg2)}
+.loading-screen img{width:140px}
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--red);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.animate-in{animation:fadeIn .3s ease both}
+@media print{.sidebar,.topbar,.menu-btn,.btn,.btn-icon,.actions-bar button{display:none!important}.main{margin-left:0!important}}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<script>
+const LOGO='data:image/png;base64,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';
+
+// ═══════════════════════════════════════
+// SUPABASE CONFIG (REST direto, sem biblioteca)
+// ═══════════════════════════════════════
+const SB_URL="https://lzdkeyxdlxvvfjrikuky.supabase.co/rest/v1";
+const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6ZGtleXhkbHh2dmZqcmlrdWt5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NjgxMTIsImV4cCI6MjA5NjE0NDExMn0.WvWewlt7LuO2KOSOKLmx3lrGC0jOR0T6TiwhMiUA8Zw";
+
+let syncStatus="loading";
+
+const DEFAULT={
+  motoboys:[
+    {id:"mb1",nome:"Carlos Silva",telefone:"(77) 99812-3456",cnh:"04587612340",moto:"Honda CG 160",placa:"MXT-4A21",status:"ativo"},
+    {id:"mb2",nome:"João Santos",telefone:"(77) 99834-7890",cnh:"07823456120",moto:"Yamaha Factor 150",placa:"NRK-8B55",status:"ativo"},
+    {id:"mb3",nome:"Pedro Oliveira",telefone:"(77) 99856-1234",cnh:"09123478560",moto:"Honda Bros 160",placa:"PKL-2C33",status:"ativo"},
+  ],
+  abastecimentos:[
+    {id:"ab1",motoboyId:"mb1",data:"2026-06-01",litros:8.5,valor:52.70,kmIni:12180,kmFin:12450,posto:"Posto Shell Centro"},
+    {id:"ab2",motoboyId:"mb2",data:"2026-06-01",litros:7.2,valor:44.64,kmIni:9620,kmFin:9870,posto:"Posto Ipiranga BR"},
+    {id:"ab3",motoboyId:"mb3",data:"2026-06-02",litros:9.0,valor:55.80,kmIni:14880,kmFin:15230,posto:"Posto Shell Centro"},
+    {id:"ab4",motoboyId:"mb1",data:"2026-06-03",litros:7.8,valor:48.36,kmIni:12450,kmFin:12720,posto:"Posto Ipiranga BR"},
+    {id:"ab5",motoboyId:"mb2",data:"2026-06-03",litros:6.5,valor:40.30,kmIni:9870,kmFin:10120,posto:"Posto Shell Centro"},
+    {id:"ab6",motoboyId:"mb3",data:"2026-06-04",litros:8.2,valor:50.84,kmIni:15230,kmFin:15580,posto:"Posto Texaco"},
+  ],
+  manutencoes:[
+    {id:"mn1",motoboyId:"mb1",data:"2026-05-20",tipo:"Troca de Óleo",valor:85.00,descricao:"Óleo 10W30 + filtro",km:12200},
+    {id:"mn2",motoboyId:"mb2",data:"2026-05-25",tipo:"Pneu",valor:220.00,descricao:"Pneu traseiro Pirelli",km:9600},
+    {id:"mn3",motoboyId:"mb3",data:"2026-05-28",tipo:"Revisão",valor:350.00,descricao:"Revisão completa 10.000km",km:15000},
+    {id:"mn4",motoboyId:"mb1",data:"2026-06-02",tipo:"Corrente",valor:120.00,descricao:"Kit relação completo",km:12700},
+  ],
+  entregas:[
+    {id:"en1",motoboyId:"mb1",data:"2026-06-01",qtd:18,km:42},{id:"en2",motoboyId:"mb2",data:"2026-06-01",qtd:15,km:35},
+    {id:"en3",motoboyId:"mb3",data:"2026-06-01",qtd:22,km:48},{id:"en4",motoboyId:"mb1",data:"2026-06-02",qtd:20,km:45},
+    {id:"en5",motoboyId:"mb2",data:"2026-06-02",qtd:17,km:38},{id:"en6",motoboyId:"mb3",data:"2026-06-02",qtd:19,km:41},
+    {id:"en7",motoboyId:"mb1",data:"2026-06-03",qtd:21,km:46},{id:"en8",motoboyId:"mb2",data:"2026-06-03",qtd:16,km:37},
+    {id:"en9",motoboyId:"mb3",data:"2026-06-03",qtd:23,km:50},{id:"en10",motoboyId:"mb1",data:"2026-06-04",qtd:19,km:43},
+    {id:"en11",motoboyId:"mb2",data:"2026-06-04",qtd:14,km:33},{id:"en12",motoboyId:"mb3",data:"2026-06-04",qtd:25,km:52},
+  ],
+  quilometragem:[
+    {id:"km1",motoboyId:"mb1",data:"2026-06-01",kmIni:12180,kmFin:12450,obs:""},
+    {id:"km2",motoboyId:"mb2",data:"2026-06-01",kmIni:9620,kmFin:9870,obs:""},
+    {id:"km3",motoboyId:"mb3",data:"2026-06-02",kmIni:14880,kmFin:15230,obs:""},
+    {id:"km4",motoboyId:"mb1",data:"2026-06-03",kmIni:12450,kmFin:12720,obs:""},
+    {id:"km5",motoboyId:"mb2",data:"2026-06-03",kmIni:9870,kmFin:10120,obs:"Hodômetro marcando correto"},
+    {id:"km6",motoboyId:"mb3",data:"2026-06-04",kmIni:15230,kmFin:15580,obs:""},
+  ],
+};
+
+// ═══════════════════════════════════════
+// CLOUD STORAGE (fetch direto — sem biblioteca)
+// ═══════════════════════════════════════
+let _toast="";
+function showToast(msg,ms){_toast=msg;renderToast();if(ms)setTimeout(()=>{_toast="";renderToast()},ms)}
+function renderToast(){const el=document.getElementById("toast");if(el)el.innerHTML=_toast?'<div style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;z-index:9999;max-width:90%;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,.3)">'+_toast+'</div>':""}
+
+async function cloudLoad(){
+  try{
+    const res=await fetch(SB_URL+"/app_data?id=eq.main&select=data",{method:"GET",headers:{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY}});
+    if(!res.ok){showToast("❌ Erro ao carregar: HTTP "+res.status,8000);return null}
+    const rows=await res.json();
+    if(rows.length>0&&rows[0].data&&rows[0].data.motoboys){return rows[0].data}
+    await fetch(SB_URL+"/app_data?id=eq.main",{method:"PATCH",headers:{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify({data:DEFAULT,updated_at:new Date().toISOString()})});
+    return JSON.parse(JSON.stringify(DEFAULT));
+  }catch(e){
+    showToast("❌ Sem conexão: "+e.message,8000);
+    return null;
+  }
+}
+
+async function cloudSave(){
+  syncStatus="saving";renderTopbar();
+  try{
+    const res=await fetch(SB_URL+"/app_data?id=eq.main",{method:"PATCH",headers:{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify({data:data,updated_at:new Date().toISOString()})});
+    if(!res.ok){const t=await res.text();showToast("❌ Erro ao salvar: HTTP "+res.status+" "+t,8000);syncStatus="error"}
+    else{syncStatus="ok";showToast("✅ Salvo na nuvem!",2000)}
+  }catch(e){
+    showToast("❌ Sem conexão: "+e.message,8000);syncStatus="error";
+  }
+  renderTopbar();
+}
+
+// ── Utils ──
+const uid=()=>Math.random().toString(36).slice(2,9);
+const fmt=v=>v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const fN=(v,d=1)=>v.toLocaleString("pt-BR",{minimumFractionDigits:d,maximumFractionDigits:d});
+const today=()=>new Date().toISOString().slice(0,10);
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const fmtDt=d=>{if(!d)return"—";const p=d.split("-");return p.length===3?p[2]+"/"+p[1]+"/"+p[0]:d};
+const precoLitro=(v,l)=>l>0?(v/l):0;
+const META_KML=30; // Meta de km por litro para cada moto
+
+// Calcula eficiência km/L por motoboy usando quilometragem + abastecimentos
+function calcEficiencia(mes){
+  const kms=(data.quilometragem||[]).filter(k=>!mes||k.data?.startsWith(mes));
+  const abs=data.abastecimentos.filter(a=>!mes||a.data?.startsWith(mes));
+  return data.motoboys.map(mb=>{
+    const mKms=kms.filter(k=>k.motoboyId===mb.id&&k.kmFin>k.kmIni);
+    const mAbs=abs.filter(a=>a.motoboyId===mb.id);
+    const totalKm=mKms.reduce((s,k)=>s+(k.kmFin-k.kmIni),0);
+    const totalLit=mAbs.reduce((s,a)=>s+a.litros,0);
+    const kml=totalLit>0?totalKm/totalLit:0;
+    const metaKm=totalLit*META_KML;
+    const diff=totalKm-metaKm;
+    const ultimoAb=mAbs.sort((a,b)=>b.data.localeCompare(a.data))[0];
+    return{...mb,totalKm,totalLit,kml,metaKm,diff,ok:kml>=META_KML*0.85||totalLit===0,ultimoAb};
+  });
+}
+
+let data, page="dashboard", sideOpen=false, modalOpen=false, modalTitle="", modalHTML="";
+let _editType=null,_editId=null;
+let _filtroMb="todos",_filtroMes="";
+
+function mbName(id){return(data.motoboys.find(m=>m.id===id)||{}).nome||"—"}
+function mbOpts(val){return data.motoboys.filter(m=>m.status!=="inativo"||m.id===val).map(m=>'<option value="'+esc(m.id)+'"'+(m.id===val?' selected':'')+'>'+esc(m.nome)+'</option>').join("")}
+function setFiltroMb(v){_filtroMb=v;render()}
+function setFiltroMes(v){_filtroMes=v;render()}
+function filtroBar(){
+  const meses=new Set();
+  (data.abastecimentos||[]).concat(data.entregas||[]).concat(data.manutencoes||[]).concat(data.quilometragem||[]).forEach(r=>{if(r.data)meses.add(r.data.slice(0,7))});
+  const mesOpts=['<option value="">Todos os meses</option>',...[...meses].sort().reverse().map(m=>'<option value="'+m+'"'+(_filtroMes===m?' selected':'')+'>'+m.split("-").reverse().join("/")+'</option>')].join("");
+  const mbFiltro=['<option value="todos">Todos motoboys</option>',...data.motoboys.map(m=>'<option value="'+m.id+'"'+(_filtroMb===m.id?' selected':'')+'>'+esc(m.nome)+'</option>')].join("");
+  return'<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap"><select onchange="setFiltroMb(this.value)" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;background:var(--white);color:var(--text)">'+mbFiltro+'</select><select onchange="setFiltroMes(this.value)" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;background:var(--white);color:var(--text)">'+mesOpts+'</select></div>';
+}
+function filtrar(arr){return arr.filter(r=>{const mbOk=_filtroMb==="todos"||r.motoboyId===_filtroMb;const mesOk=!_filtroMes||r.data?.startsWith(_filtroMes);return mbOk&&mesOk})}
+
+// Mês atual e anterior
+function mesAtual(){return today().slice(0,7)}
+function mesAnterior(m){const[a,mm]=m.split("-").map(Number);const d=new Date(a,mm-2,1);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")}
+function nomeMes(m){if(!m)return"Todos";const[a,mm]=m.split("-");const nomes=["","Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];return nomes[parseInt(mm)]+" / "+a}
+let _dashMes=""; // vazio = mês atual
+
+function setDashMes(v){_dashMes=v;render()}
+
+function calcKpis(mes){
+  const fM=arr=>mes?arr.filter(r=>r.data?.startsWith(mes)):arr;
+  const ab=fM(data.abastecimentos);
+  const mn=fM(data.manutencoes);
+  const en=fM(data.entregas);
+
+  const tComb=ab.reduce((s,a)=>s+a.valor,0);
+  const tManut=mn.reduce((s,m)=>s+m.valor,0);
+  const tGeral=tComb+tManut;
+  const tEnt=en.reduce((s,e)=>s+e.qtd,0);
+  const tLit=ab.reduce((s,a)=>s+a.litros,0);
+
+  const mbsOk=data.motoboys.filter(m=>!m.kmDefeito);
+  const kmOk=mbsOk.reduce((s,mb)=>s+en.filter(e=>e.motoboyId===mb.id).reduce((s2,e)=>s2+e.km,0),0);
+  const entOk=mbsOk.reduce((s,mb)=>s+en.filter(e=>e.motoboyId===mb.id).reduce((s2,e)=>s2+e.qtd,0),0);
+  const avgKmPorEnt=entOk>0?kmOk/entOk:2.5;
+
+  const porMb=data.motoboys.map(mb=>{
+    const comb=ab.filter(a=>a.motoboyId===mb.id).reduce((s,a)=>s+a.valor,0);
+    const manut=mn.filter(m=>m.motoboyId===mb.id).reduce((s,m)=>s+m.valor,0);
+    const ent2=en.filter(e=>e.motoboyId===mb.id).reduce((s,e)=>s+e.qtd,0);
+    const kmReal=en.filter(e=>e.motoboyId===mb.id).reduce((s,e)=>s+e.km,0);
+    const lit=ab.filter(a=>a.motoboyId===mb.id).reduce((s,a)=>s+a.litros,0);
+    const total=comb+manut;
+    const kmEstimado=mb.kmDefeito;
+    const km=kmEstimado?Math.round(ent2*avgKmPorEnt):kmReal;
+    return{...mb,comb,manut,total,ent:ent2,km,kmReal,kmEstimado,lit,custoEnt:ent2>0?total/ent2:0,custoKm:km>0?total/km:0,consumo:lit>0?km/lit:0};
+  });
+
+  const tKm=porMb.reduce((s,m)=>s+m.km,0);
+  return{tComb,tManut,tGeral,tEnt,tKm,tLit,custoEnt:tEnt>0?tGeral/tEnt:0,custoKm:tKm>0?tGeral/tKm:0,consumo:tLit>0?tKm/tLit:0,porMb,avgKmPorEnt};
+}
+
+// Alertas de manutenção preventiva
+function getAlertasManut(){
+  const alertas=[];
+  data.motoboys.forEach(mb=>{
+    // KM atual = maior kmFin da quilometragem
+    const kms=(data.quilometragem||[]).filter(k=>k.motoboyId===mb.id&&k.kmFin>0);
+    const kmAtual=kms.length>0?Math.max(...kms.map(k=>k.kmFin)):0;
+    // Próxima revisão = maior kmProxRevisao das manutenções
+    const manuts=data.manutencoes.filter(m=>m.motoboyId===mb.id&&m.kmProxRevisao>0);
+    if(manuts.length===0||kmAtual===0)return;
+    const proxRev=Math.max(...manuts.map(m=>m.kmProxRevisao));
+    const falta=proxRev-kmAtual;
+    if(falta<=500){alertas.push({mb,kmAtual,proxRev,falta,vencida:falta<=0})}
+  });
+  return alertas;
+}
+function renderAlertasManut(){
+  const al=getAlertasManut();
+  if(al.length===0)return'';
+  return'<div class="section animate-in" style="border-color:#fde68a;background:#fffbeb"><div class="section-title" style="color:#92400e">🔔 Alertas de Manutenção</div>'+al.map(a=>{
+    const cor=a.vencida?'var(--red)':'#d97706';
+    const msg=a.vencida?'⚠ REVISÃO VENCIDA ('+fN(Math.abs(a.falta),0)+'km acima)':'⏰ Faltam '+fN(a.falta,0)+'km para revisão';
+    return'<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #fde68a"><div style="font-size:13px;font-weight:700;flex:1;color:'+cor+'">'+esc(a.mb.nome)+'</div><div style="text-align:right"><div style="font-size:12px;font-weight:700;color:'+cor+'">'+msg+'</div><div style="font-size:10px;color:var(--text4)">Atual: '+fN(a.kmAtual,0)+'km · Próx: '+fN(a.proxRev,0)+'km</div></div></div>';
+  }).join("")+'</div>';
+}
+
+const IC={
+  dashboard:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
+  motoboy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0 1 13 0"/></svg>',
+  fuel:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"/><path d="M13 10h2a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2 2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 6"/></svg>',
+  wrench:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>',
+  delivery:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>',
+  chart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+  plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+  x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+  edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+  menu:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>',
+  refresh:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>',
+  speed:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>',
+};
+
+const NAV=[{key:"dashboard",icon:IC.dashboard,label:"Dashboard"},{key:"motoboys",icon:IC.motoboy,label:"Motoboys"},{key:"quilometragem",icon:IC.speed,label:"Quilometragem"},{key:"abastecimentos",icon:IC.fuel,label:"Abastecimentos"},{key:"manutencoes",icon:IC.wrench,label:"Manutenções"},{key:"entregas",icon:IC.delivery,label:"Entregas"},{key:"relatorios",icon:IC.chart,label:"Relatórios"}];
+
+function exportarDados(){const j=JSON.stringify(data,null,2);const b=new Blob([j],{type:"application/json"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download="backup_frota_luz_"+today()+".json";document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);showToast("✅ Backup exportado!",2000)}
+
+function openModal(t,h){modalTitle=t;modalHTML=h;modalOpen=true;render()}
+function closeModal(){modalOpen=false;_editType=null;_editId=null;render()}
+function navigate(p){page=p;sideOpen=false;render();window.scrollTo(0,0)}
+function toggleSide(){sideOpen=!sideOpen;render()}
+
+async function recarregar(){
+  syncStatus="loading";renderTopbar();
+  const cloud=await cloudLoad();
+  if(cloud&&cloud.motoboys){data=ensureStructure(cloud);localSave();syncStatus="ok";_cloudReady=true}else{syncStatus="error"}
+  render();
+}
+
+function resetData(){if(confirm("Resetar dados para o padrão de exemplo?")){data=JSON.parse(JSON.stringify(DEFAULT));saveData()}}
+
+// ═══════════════════════════════════════
+// SALVAR UNIVERSAL
+// ═══════════════════════════════════════
+function salvar(){
+  const gv=id=>{const el=document.getElementById(id);return el?el.value:""};
+  const gn=id=>parseFloat(gv(id))||0;
+  if(_editType==="motoboy"){
+    const nome=gv("f_nome").trim();if(!nome)return alert("Preencha o nome");
+    const kmDef=document.getElementById("f_kmDefeito");
+    const inativo=document.getElementById("f_inativo");
+    const obj={nome,telefone:gv("f_tel"),cnh:gv("f_cnh"),moto:gv("f_moto"),placa:gv("f_placa"),kmDefeito:kmDef?kmDef.checked:false,status:inativo&&inativo.checked?"inativo":"ativo"};
+    if(_editId){const r=data.motoboys.find(m=>m.id===_editId);if(r)Object.assign(r,obj)}
+    else{data.motoboys.push({id:"mb"+uid(),status:"ativo",...obj})}
+  }else if(_editType==="abast"){
+    const mb=gv("f_mb"),litros=gn("f_litros"),valor=gn("f_valor");
+    if(!mb||!litros||!valor)return alert("Preencha motoboy, litros e valor");
+    const postoSel=gv("f_posto_sel");
+    const posto=postoSel==="__outro"?gv("f_posto_outro").trim():postoSel;
+    if(!posto)return alert("Selecione ou digite o posto");
+    // Salva novo posto na lista
+    if(!data.postos)data.postos=[];
+    if(posto&&data.postos.indexOf(posto)===-1){data.postos.push(posto)}
+    const motoUsada=gv("f_motoUsada")||"propria";
+    const obj={motoboyId:mb,data:gv("f_data"),litros,valor,posto,motoUsada,obs:gv("f_obs")};
+    if(_editId){const r=data.abastecimentos.find(a=>a.id===_editId);if(r)Object.assign(r,obj)}
+    else{data.abastecimentos.push({id:"ab"+uid(),...obj})}
+  }else if(_editType==="km"){
+    const mb=gv("f_mb"),kmIni=gn("f_kmIni"),kmFin=gn("f_kmFin");
+    if(!mb)return alert("Selecione o motoboy");
+    if(!kmIni&&!kmFin)return alert("Preencha KM Inicial ou Final");
+    if(!data.quilometragem)data.quilometragem=[];
+    const obj={motoboyId:mb,data:gv("f_data"),kmIni,kmFin,motoUsada:gv("f_motoKm")||"propria",obs:gv("f_obs")};
+    if(_editId){const r=data.quilometragem.find(k=>k.id===_editId);if(r)Object.assign(r,obj)}
+    else{data.quilometragem.push({id:"km"+uid(),...obj})}
+  }else if(_editType==="manut"){
+    const mb=gv("f_mb"),valor=gn("f_valor");
+    if(!mb||!valor)return alert("Preencha motoboy e valor");
+    const obj={motoboyId:mb,data:gv("f_data"),tipo:gv("f_tipo"),valor,descricao:gv("f_desc"),local:gv("f_local"),obs:gv("f_obs")};
+    if(_editId){const r=data.manutencoes.find(m=>m.id===_editId);if(r)Object.assign(r,obj)}
+    else{data.manutencoes.push({id:"mn"+uid(),...obj})}
+  }else if(_editType==="entrega"){
+    const mb=gv("f_mb"),qtd=parseInt(gv("f_qtd"))||0;
+    if(!mb||!qtd)return alert("Preencha motoboy e quantidade");
+    const obj={motoboyId:mb,data:gv("f_data"),dataFim:gv("f_dataFim")||gv("f_data"),qtd,km:0,obs:gv("f_obs")};
+    if(_editId){const r=data.entregas.find(e=>e.id===_editId);if(r)Object.assign(r,obj)}
+    else{data.entregas.push({id:"en"+uid(),...obj})}
+  }
+  saveData();
+  
+  // ALERTA DE EFICIÊNCIA após lançar abastecimento ou km
+  if(_editType==="abast"||_editType==="km"){
+    var alertMb=_editType==="abast"?document.getElementById("f_mb")?.value:document.getElementById("f_mb")?.value;
+    if(alertMb){
+      var mbNome=mbName(alertMb);
+      var mesAtualStr=today().slice(0,7);
+      var ef=calcEficiencia(mesAtualStr).find(function(e){return e.id===alertMb});
+      if(ef&&ef.totalLit>0){
+        var metaKm=ef.totalLit*META_KML;
+        var falta=Math.max(0,metaKm-ef.totalKm);
+        var msg;
+        if(ef.kml>=META_KML){
+          msg="✅ "+mbNome+": "+fN(ef.kml,1)+" km/L — META ATINGIDA! Rodou "+fN(ef.totalKm,0)+"km com "+fN(ef.totalLit,1)+"L. Parabéns!";
+        }else if(falta>0){
+          msg="⚠ "+mbNome+": "+fN(ef.kml,1)+" km/L — FALTAM "+fN(falta,0)+"km para bater a meta de "+META_KML+"km/L. Precisa rodar "+fN(metaKm,0)+"km com "+fN(ef.totalLit,1)+"L, já rodou "+fN(ef.totalKm,0)+"km.";
+        }else{
+          msg="🎯 "+mbNome+": "+fN(ef.kml,1)+" km/L (meta: "+META_KML+"km/L)";
+        }
+        showToast(msg,8000);
+      }
+    }
+  }
+  
+  closeModal();
+}
+
+// ═══════════════════════════════════════
+// FORMS
+// ═══════════════════════════════════════
+const TIPOS_MANUT=["Troca de Óleo","Pneu","Corrente","Freio","Revisão","Elétrica","Outro"];
+function motoboyForm(mb){const checked=mb.kmDefeito?'checked':'';const inativo=mb.status==='inativo'?'checked':'';return'<div class="field"><label>Nome completo</label><input id="f_nome" value="'+esc(mb.nome)+'"></div><div class="field"><label>Telefone</label><input id="f_tel" value="'+esc(mb.telefone)+'"></div><div class="field"><label>CNH</label><input id="f_cnh" value="'+esc(mb.cnh)+'"></div><div class="field"><label>Moto</label><input id="f_moto" value="'+esc(mb.moto)+'"></div><div class="field"><label>Placa</label><input id="f_placa" value="'+esc(mb.placa)+'"></div><div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#fef3c7;border-radius:8px;margin-bottom:10px"><input type="checkbox" id="f_kmDefeito" '+checked+' style="width:18px;height:18px;accent-color:var(--red)"><label for="f_kmDefeito" style="font-size:13px;color:#92400e;font-weight:600;cursor:pointer">⚙ Hodômetro com defeito</label></div><div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#fee2e2;border-radius:8px;margin-bottom:14px"><input type="checkbox" id="f_inativo" '+inativo+' style="width:18px;height:18px;accent-color:var(--red)"><label for="f_inativo" style="font-size:13px;color:#991b1b;font-weight:600;cursor:pointer">🚫 Motoboy inativo (não aparece nos lançamentos)</label></div><div class="modal-actions"><button class="btn btn-primary" onclick="salvar()">Salvar</button><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button></div>'}
+function abastForm(ab){
+  const postos=data.postos||[];
+  const postoOpts=postos.map(p=>'<option value="'+esc(p)+'"'+(p===ab.posto?' selected':'')+'>'+esc(p)+'</option>').join("");
+  const motoMb=ab.motoboyId?data.motoboys.find(m=>m.id===ab.motoboyId):null;
+  const motoNome=motoMb?motoMb.moto+" ("+motoMb.placa+")":"";
+  const motoFarm=data.motoFarmacia||"Pop 110i Farmácia";
+  const motoSel=ab.motoUsada||"propria";
+  return'<div class="field"><label>Motoboy</label><select id="f_mb" onchange="atualizaMotoAbast()">'+mbOpts(ab.motoboyId)+'</select></div>'
+    +'<div class="field"><label>Moto utilizada</label><select id="f_motoUsada"><option value="propria"'+(motoSel==="propria"?' selected':'')+'>Moto própria do colaborador</option><option value="farmacia"'+(motoSel==="farmacia"?' selected':'')+'>'+esc(motoFarm)+' (Farmácia)</option></select></div>'
+    +'<div class="field"><label>Data</label><input id="f_data" type="date" value="'+ab.data+'"></div>'
+    +'<div class="field-row"><div class="field"><label>Litros</label><input id="f_litros" type="number" step="0.1" value="'+ab.litros+'"></div><div class="field"><label>Valor (R$)</label><input id="f_valor" type="number" step="0.01" value="'+ab.valor+'"></div></div>'
+    +'<div class="field"><label>Posto</label><select id="f_posto_sel" onchange="togglePostoOutro()">'+postoOpts+'<option value="__outro"'+(postos.indexOf(ab.posto)===-1&&ab.posto?' selected':'')+'>+ Outro posto</option></select></div>'
+    +'<div class="field" id="f_posto_outro_wrap" style="'+(postos.indexOf(ab.posto)===-1&&ab.posto?'':'display:none')+'"><label>Nome do novo posto</label><input id="f_posto_outro" value="'+(postos.indexOf(ab.posto)===-1?esc(ab.posto||""):"")+'" placeholder="Digite o nome do posto"></div>'
+    +'<div class="field"><label>Observação</label><input id="f_obs" value="'+esc(ab.obs||"")+'" placeholder="Ex: tanque cheio..."></div>'
+    +'<div class="modal-actions"><button class="btn btn-primary" onclick="salvar()">Salvar</button><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button></div>';
+}
+function kmForm(k){const motoFarm=data.motoFarmacia||"Pop 110i Farmácia";const motoSel=k.motoUsada||"propria";const mbObj=k.motoboyId?data.motoboys.find(m=>m.id===k.motoboyId):null;const motoNome=mbObj?mbObj.moto+(mbObj.placa?' · '+mbObj.placa:''):'Moto do colaborador';return'<div class="field"><label>Motoboy</label><select id="f_mb">'+mbOpts(k.motoboyId)+'</select></div><div class="field"><label>Moto utilizada</label><select id="f_motoKm"><option value="propria"'+(motoSel==="propria"?' selected':'')+'>Moto própria do colaborador</option><option value="farmacia"'+(motoSel==="farmacia"?' selected':'')+'>'+esc(motoFarm)+' (Farmácia)</option></select></div><div class="field"><label>Data</label><input id="f_data" type="date" value="'+k.data+'"></div><div class="field-row"><div class="field"><label>KM Inicial</label><input id="f_kmIni" type="number" value="'+(k.kmIni||"")+'"></div><div class="field"><label>KM Final</label><input id="f_kmFin" type="number" value="'+(k.kmFin||"")+'"></div></div><div class="field"><label>Observação</label><input id="f_obs" value="'+esc(k.obs||"")+'" placeholder="Ex: rota longa..."></div><div class="modal-actions"><button class="btn btn-primary" onclick="salvar()">Salvar</button><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button></div>'}
+function manutForm(mn){const to=TIPOS_MANUT.map(t=>'<option value="'+t+'"'+(t===mn.tipo?' selected':'')+'>'+t+'</option>').join("");return'<div class="field"><label>Motoboy</label><select id="f_mb">'+mbOpts(mn.motoboyId)+'</select></div><div class="field"><label>Data</label><input id="f_data" type="date" value="'+mn.data+'"></div><div class="field"><label>Tipo</label><select id="f_tipo">'+to+'</select></div><div class="field"><label>Valor (R$)</label><input id="f_valor" type="number" step="0.01" value="'+mn.valor+'"></div><div class="field"><label>Descrição</label><input id="f_desc" value="'+esc(mn.descricao||"")+'"></div><div class="field"><label>Local da manutenção</label><input id="f_local" value="'+esc(mn.local||"")+'" placeholder="Ex: Oficina do Zé, Concessionária Honda..."></div><div class="field"><label>Observação</label><input id="f_obs" value="'+esc(mn.obs||"")+'" placeholder="Detalhes extras..."></div><div class="modal-actions"><button class="btn btn-primary" onclick="salvar()">Salvar</button><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button></div>'}
+function entregaForm(en){return'<div class="field"><label>Motoboy</label><select id="f_mb">'+mbOpts(en.motoboyId)+'</select></div><div class="field-row"><div class="field"><label>Data início</label><input id="f_data" type="date" value="'+(en.data||today())+'"></div><div class="field"><label>Data fim</label><input id="f_dataFim" type="date" value="'+(en.dataFim||today())+'"></div></div><div class="field"><label>Total de Entregas no Período</label><input id="f_qtd" type="number" value="'+en.qtd+'" placeholder="Ex: 450"></div><div class="field"><label>Observação</label><input id="f_obs" value="'+esc(en.obs||"")+'" placeholder="Ex: contagem semanal..."></div><div class="modal-actions"><button class="btn btn-primary" onclick="salvar()">Salvar</button><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button></div>'}
+
+// ═══════════════════════════════════════
+// AÇÕES
+// ═══════════════════════════════════════
+function addMotoboy(){_editType="motoboy";_editId=null;openModal("Novo Motoboy",motoboyForm({nome:"",telefone:"",cnh:"",moto:"",placa:""}))}
+function editMotoboy(id){const r=data.motoboys.find(m=>m.id===id);if(!r)return;_editType="motoboy";_editId=id;openModal("Editar Motoboy",motoboyForm(r))}
+function deleteMotoboy(id){if(!confirm("Remover motoboy e todos os seus registros?"))return;data.motoboys=data.motoboys.filter(m=>m.id!==id);data.abastecimentos=data.abastecimentos.filter(a=>a.motoboyId!==id);data.manutencoes=data.manutencoes.filter(m=>m.motoboyId!==id);data.entregas=data.entregas.filter(e=>e.motoboyId!==id);if(data.quilometragem)data.quilometragem=data.quilometragem.filter(k=>k.motoboyId!==id);saveData()}
+function addAbast(){_editType="abast";_editId=null;openModal("Novo Abastecimento",abastForm({motoboyId:data.motoboys[0]?.id||"",data:today(),litros:"",valor:"",posto:""}))}
+function editAbast(id){const r=data.abastecimentos.find(a=>a.id===id);if(!r)return;_editType="abast";_editId=id;openModal("Editar Abastecimento",abastForm(r))}
+function deleteAbast(id){data.abastecimentos=data.abastecimentos.filter(a=>a.id!==id);saveData()}
+function addKm(){_editType="km";_editId=null;openModal("Registrar Quilometragem",kmForm({motoboyId:data.motoboys[0]?.id||"",data:today(),kmIni:"",kmFin:"",obs:""}))}
+function editKm(id){if(!data.quilometragem)return;const r=data.quilometragem.find(k=>k.id===id);if(!r)return;_editType="km";_editId=id;openModal("Editar Quilometragem",kmForm(r))}
+function deleteKm(id){if(data.quilometragem)data.quilometragem=data.quilometragem.filter(k=>k.id!==id);saveData()}
+function addManut(){_editType="manut";_editId=null;openModal("Nova Manutenção",manutForm({motoboyId:data.motoboys[0]?.id||"",data:today(),tipo:TIPOS_MANUT[0],valor:"",descricao:"",km:""}))}
+function editManut(id){const r=data.manutencoes.find(m=>m.id===id);if(!r)return;_editType="manut";_editId=id;openModal("Editar Manutenção",manutForm(r))}
+function deleteManut(id){data.manutencoes=data.manutencoes.filter(m=>m.id!==id);saveData()}
+function addEntrega(){_editType="entrega";_editId=null;openModal("Registrar Entregas",entregaForm({motoboyId:data.motoboys[0]?.id||"",data:today(),qtd:"",km:""}))}
+function editEntrega(id){const r=data.entregas.find(e=>e.id===id);if(!r)return;_editType="entrega";_editId=id;openModal("Editar Entrega",entregaForm(r))}
+function deleteEntrega(id){data.entregas=data.entregas.filter(e=>e.id!==id);saveData()}
+
+// ═══════════════════════════════════════
+// PAGES
+// ═══════════════════════════════════════
+function renderDashboard(){
+const selMes=_dashMes||mesAtual();const mesAnt=mesAnterior(selMes);
+const k=calcKpis(selMes);const kAnt=calcKpis(mesAnt);
+const meses=new Set();(data.abastecimentos||[]).concat(data.entregas||[]).concat(data.manutencoes||[]).forEach(r=>{if(r.data)meses.add(r.data.slice(0,7))});meses.add(mesAtual());
+const mesOpts=[...meses].sort().reverse().map(m=>'<option value="'+m+'"'+(m===selMes?' selected':'')+'>'+nomeMes(m)+'</option>').join("");
+const mesSel='<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap"><select onchange="setDashMes(this.value)" style="padding:8px 14px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-weight:700;background:var(--white);color:var(--red)">'+mesOpts+'</select><span style="font-size:12px;color:var(--text4)">vs '+nomeMes(mesAnt)+'</span></div>';
+function vari(a,b){if(!b||b===0)return'';const p=((a-b)/b*100);return'<span style="font-size:10px;color:'+(p>0?'var(--red)':'#16a34a')+';font-weight:700"> '+(p>0?'▲':'▼')+' '+fN(Math.abs(p))+'%</span>'}
+const mx=Math.max(...k.porMb.map(m=>m.total),1);const bH=120;
+let bars=k.porMb.map(m=>'<div class="bar-col"><span class="val">'+fmt(m.total)+'</span><div class="bar" style="height:'+(m.total/mx*bH)+'px;background:linear-gradient(180deg,var(--red),#ef4444aa)"></div><span class="lbl">'+esc(m.nome.split(" ")[0])+'</span></div>').join("");
+const comp=[{l:"Combustivel",v:k.tComb,c:"#f59e0b",p:k.tGeral>0?k.tComb/k.tGeral*100:0},{l:"Manutencao",v:k.tManut,c:"#8b5cf6",p:k.tGeral>0?k.tManut/k.tGeral*100:0}];
+let rank=[...k.porMb].sort((a,b)=>a.custoEnt-b.custoEnt).map((m,i)=>'<div class="list-item"><div class="rank-num '+(i===0?"rank-1":i===1?"rank-2":"rank-3")+'">'+(i+1)+'º</div><div class="list-body"><h4>'+esc(m.nome)+'</h4><p>'+m.ent+' entregas</p></div><div style="text-align:right"><div class="list-value red">'+fmt(m.custoEnt)+'/ent.</div><p style="font-size:11px;color:var(--text4)">Total: '+fmt(m.total)+'</p></div></div>').join("");
+let compMb=k.porMb.map(m=>{const ant=kAnt.porMb.find(a=>a.id===m.id)||{comb:0,ent:0,lit:0,total:0};return'<div style="padding:10px 0;border-bottom:1px solid var(--bg3)"><div style="font-size:13px;font-weight:700;margin-bottom:6px">'+esc(m.nome)+'</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px"><div style="text-align:center;background:var(--bg2);border-radius:6px;padding:6px"><div style="font-size:9px;color:var(--text4)">ENTREGAS</div><div style="font-size:14px;font-weight:800;color:#16a34a">'+m.ent+'</div><div style="font-size:9px;color:var(--text4)">ant: '+ant.ent+vari(m.ent,ant.ent)+'</div></div><div style="text-align:center;background:var(--bg2);border-radius:6px;padding:6px"><div style="font-size:9px;color:var(--text4)">COMBUSTIVEL</div><div style="font-size:14px;font-weight:800;color:#f59e0b">'+fmt(m.comb)+'</div><div style="font-size:9px;color:var(--text4)">ant: '+fmt(ant.comb)+vari(m.comb,ant.comb)+'</div></div><div style="text-align:center;background:var(--bg2);border-radius:6px;padding:6px"><div style="font-size:9px;color:var(--text4)">LITROS</div><div style="font-size:14px;font-weight:800;color:#d97706">'+fN(m.lit)+'</div><div style="font-size:9px;color:var(--text4)">ant: '+fN(ant.lit)+vari(m.lit,ant.lit)+'</div></div></div></div>'}).join("");
+const maxLit=Math.max(...k.porMb.map(m=>m.lit),1);const maxEnt2=Math.max(...k.porMb.map(m=>m.ent),1);
+const sorted2=[...k.porMb].sort((a,b)=>(b.lit/Math.max(b.ent,1))-(a.lit/Math.max(a.ent,1)));
+let compRows=sorted2.map((m,i)=>{const lp=(m.lit/maxLit*100);const ep=(m.ent/maxEnt2*100);const lpe=m.ent>0?(m.lit/m.ent):0;const w=i===0&&sorted2.length>1;const be=i===sorted2.length-1&&sorted2.length>1;const tg=w?'<span style="background:#fee2e2;color:var(--red);font-size:9px;padding:2px 6px;border-radius:4px;font-weight:700;margin-left:6px">⚠ MAIS GASTO</span>':be?'<span style="background:#dcfce7;color:#16a34a;font-size:9px;padding:2px 6px;border-radius:4px;font-weight:700;margin-left:6px">✓ MAIS EFICIENTE</span>':'';return'<div style="padding:14px 0;border-bottom:1px solid var(--bg3)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-size:14px;font-weight:700">'+esc(m.nome)+tg+'</div><div style="font-size:13px;font-weight:700;color:var(--text2)">'+fN(lpe,2)+' L/ent</div></div><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:10px;color:var(--text4);width:65px;flex-shrink:0">⛽ '+fN(m.lit)+' L</span><div style="flex:1;height:14px;background:var(--bg3);border-radius:4px;overflow:hidden"><div style="width:'+lp+'%;height:100%;background:linear-gradient(90deg,#f59e0b,#fbbf24);border-radius:4px"></div></div><span style="font-size:10px;color:#f59e0b;font-weight:700;width:55px;text-align:right">'+fmt(m.comb)+'</span></div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:10px;color:var(--text4);width:65px;flex-shrink:0">📦 '+m.ent+' ent.</span><div style="flex:1;height:14px;background:var(--bg3);border-radius:4px;overflow:hidden"><div style="width:'+ep+'%;height:100%;background:linear-gradient(90deg,#16a34a,#4ade80);border-radius:4px"></div></div><span style="font-size:10px;color:#16a34a;font-weight:700;width:55px;text-align:right">'+fN(m.km,0)+' km</span></div></div>'}).join("");
+return mesSel+renderAlertasManut()+'<div class="kpi-grid animate-in"><div class="kpi-card red"><div class="kpi-label">Gasto '+nomeMes(selMes)+'</div><div class="kpi-value red">'+fmt(k.tGeral)+vari(k.tGeral,kAnt.tGeral)+'</div><div class="kpi-sub">ant: '+fmt(kAnt.tGeral)+'</div></div><div class="kpi-card amber"><div class="kpi-label">Custo/Entrega</div><div class="kpi-value amber">'+fmt(k.custoEnt)+vari(k.custoEnt,kAnt.custoEnt)+'</div><div class="kpi-sub">'+k.tEnt+' ent (ant: '+kAnt.tEnt+')</div></div><div class="kpi-card purple"><div class="kpi-label">Custo/KM</div><div class="kpi-value purple">'+fmt(k.custoKm)+'</div><div class="kpi-sub">'+fN(k.tKm,0)+' km</div></div><div class="kpi-card green"><div class="kpi-label">Consumo Medio</div><div class="kpi-value green">'+fN(k.consumo)+' km/L</div><div class="kpi-sub">'+fN(k.tLit)+' litros</div></div></div><div class="section animate-in"><div class="section-title">📅 '+nomeMes(selMes)+' x '+nomeMes(mesAnt)+' — Por Colaborador</div>'+compMb+'</div><div class="section animate-in"><div class="section-title">Gasto por Motoboy</div><div class="bar-chart" style="height:'+(bH+40)+'px">'+bars+'</div></div><div class="kpi-grid animate-in">'+comp.map(c=>'<div class="section" style="margin-bottom:0"><div class="kpi-label">'+c.l+'</div><div style="font-size:20px;font-weight:800;color:'+c.c+';margin:6px 0">'+fmt(c.v)+'</div><div class="progress-bar"><div class="progress-fill" style="width:'+c.p+'%;background:'+c.c+'"></div></div><div style="font-size:11px;color:var(--text4);margin-top:4px">'+fN(c.p)+'% do total</div></div>').join("")+'</div><div class="section animate-in" style="margin-top:16px"><div class="section-title">Comparativo: Abastecimento x Entregas</div><p style="font-size:12px;color:var(--text3);margin:-8px 0 12px">Ordenado do menos eficiente ao mais eficiente.</p>'+compRows+'</div><div class="section animate-in" style="margin-top:16px">'+renderEficiencia(selMes)+'<div class="section-title">Ranking de Eficiencia</div>'+rank+'</div>'}
+
+
+function renderEficiencia(mes){
+  var ef=calcEficiencia(mes);var rows=ef.filter(function(e){var mb=data.motoboys.find(function(m){return m.id===e.id});return!mb||mb.status!=="inativo"}).map(function(e){
+    var cor=e.totalLit===0?"var(--text4)":e.kml>=META_KML?"#16a34a":e.kml>=META_KML*0.85?"#d97706":"var(--red)";
+    var bg=e.totalLit===0?"var(--bg3)":e.kml>=META_KML?"#dcfce7":e.kml>=META_KML*0.85?"#fef3c7":"#fee2e2";
+    var bgCor=e.totalLit===0?"var(--text4)":e.kml>=META_KML?"#166534":e.kml>=META_KML*0.85?"#92400e":"#991b1b";
+    var lbl=e.totalLit===0?"Sem dados":e.kml>=META_KML?"✓ Meta atingida":e.kml>=META_KML*0.85?"⚠ Quase na meta":"⚠ Abaixo da meta";
+    var falta=e.totalLit>0?Math.max(0,e.metaKm-e.totalKm):0;
+    var msg='';
+    if(e.totalLit>0&&e.kml>=META_KML){msg='<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px;margin-top:10px;font-size:12px;color:#166534">✅ Bom desempenho! Rodou '+fN(e.totalKm,0)+'km com '+fN(e.totalLit,1)+'L — atingiu a meta de '+META_KML+'km/L. Continue assim!</div>'}
+    else if(e.totalLit>0&&e.kml<META_KML*0.85){msg='<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px;margin-top:10px;font-size:12px;color:#991b1b">⚠ Rodou apenas '+fN(e.totalKm,0)+'km com '+fN(e.totalLit,1)+'L — deveria ter rodado '+fN(e.metaKm,0)+'km ('+META_KML+'km/L). <strong>Faltaram '+fN(falta,0)+'km.</strong> Verificar: condução, pneus, revisão da moto?</div>'}
+    else if(e.totalLit>0){msg='<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px;margin-top:10px;font-size:12px;color:#92400e">⚠ Próximo da meta. Rodou '+fN(e.totalKm,0)+'km com '+fN(e.totalLit,1)+'L. Faltam '+fN(falta,0)+'km para atingir '+META_KML+'km/L.</div>'}
+    return'<div class="section" style="border-left:3px solid '+cor+';margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><div><strong style="font-size:15px">'+esc(e.nome)+'</strong> <span style="background:'+bg+';color:'+bgCor+';font-size:10px;padding:2px 8px;border-radius:5px;font-weight:700;margin-left:4px">'+lbl+'</span><div style="font-size:11px;color:var(--text3)">'+esc(e.moto||"")+' · '+esc(e.placa||"")+(e.ultimoAb?' · Último abast: '+fmtDt(e.ultimoAb.data):'')+'</div></div><div style="text-align:right"><div style="font-size:24px;font-weight:800;color:'+cor+'">'+fN(e.kml,1)+' km/L</div><div style="font-size:10px;color:var(--text4)">Meta: '+META_KML+' km/L</div></div></div><div class="detail-grid" style="margin-top:10px"><div class="detail-card"><div class="dl">KM Rodados</div><div class="dv" style="color:#2563eb">'+fN(e.totalKm,0)+'</div></div><div class="detail-card"><div class="dl">Litros</div><div class="dv" style="color:#f59e0b">'+fN(e.totalLit,1)+'L</div></div><div class="detail-card"><div class="dl">km/L Real</div><div class="dv" style="color:'+cor+'">'+fN(e.kml,1)+'</div></div><div class="detail-card"><div class="dl">Falta p/ meta</div><div class="dv" style="color:'+(falta>0?"var(--red)":"#16a34a")+'">'+(e.totalLit===0?"—":falta>0?fN(falta,0)+' km':'0 km ✓')+'</div></div></div>'+msg+'</div>';
+  }).join("");
+  var abaixo=ef.filter(function(e){return e.totalLit>0&&e.kml<META_KML*0.85});
+  var alerta=abaixo.length>0?'<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px;margin-top:10px;font-size:12px;color:#991b1b"><strong>⚠ '+abaixo.length+' motoboy'+(abaixo.length>1?'s':'')+' abaixo da meta:</strong> '+abaixo.map(function(e){return esc(e.nome)+' ('+fN(e.kml,1)+' km/L)'}).join(", ")+'. Verificar condução e estado das motos.</div>':'';
+  return'<div class="animate-in" style="margin-top:16px"><div class="section-title" style="margin-bottom:12px">🎯 Controle de Eficiência — Meta '+META_KML+' km/L</div><p style="font-size:11px;color:var(--text3);margin:-4px 0 14px">Atualiza automaticamente a cada lançamento de abastecimento e quilometragem</p>'+rows+alerta+'</div>';
+}
+
+function renderMotoboys(){const k=calcKpis();let l=data.motoboys.map(mb=>{const s=k.porMb.find(g=>g.id===mb.id)||{};const defTag=mb.kmDefeito?'<span style="background:#fef3c7;color:#92400e;font-size:9px;padding:2px 6px;border-radius:4px;font-weight:700;margin-left:4px">⚙ KM estimado</span>':'';const inaTag=mb.status==="inativo"?'<span style="background:#fee2e2;color:var(--red);font-size:9px;padding:2px 6px;border-radius:4px;font-weight:700;margin-left:4px">🚫 Inativo</span>':'';return'<div class="list-item" style="'+(mb.status==="inativo"?"opacity:.5":"")+'"><div class="list-icon red">'+IC.motoboy+'</div><div class="list-body"><h4>'+esc(mb.nome)+defTag+inaTag+'</h4><p>'+esc(mb.moto)+' · '+esc(mb.placa)+' · '+esc(mb.telefone)+'</p></div><div style="text-align:right;min-width:90px"><div class="list-value red">'+fmt(s.total||0)+'</div><p style="font-size:11px;color:var(--text4)">'+(s.ent||0)+' entregas</p></div><button class="btn-icon" onclick="editMotoboy(\''+mb.id+'\')">'+IC.edit+'</button><button class="btn-icon" onclick="deleteMotoboy(\''+mb.id+'\')">'+IC.trash+'</button></div>'}).join("");return'<div class="actions-bar"><span>'+data.motoboys.length+' cadastrados</span><button class="btn btn-primary" onclick="addMotoboy()">'+IC.plus+' Novo Motoboy</button></div><div class="section animate-in">'+(l||'<p style="color:var(--text4);text-align:center;padding:20px">Nenhum motoboy</p>')+'</div>'}
+
+function renderAbastecimentos(){const k=calcKpis();const s=filtrar([...data.abastecimentos]).sort((a,b)=>b.data.localeCompare(a.data));const totalFiltro=s.reduce((x,a)=>x+a.valor,0);let l=s.map(ab=>{const pl=precoLitro(ab.valor,ab.litros);const plTag=pl>0?'<span style="font-size:10px;color:'+(pl>7.5?'var(--red)':'#16a34a')+';font-weight:600"> ('+fN(pl,2)+'/L'+(pl>7.5?' ⚠':'')+')</span>':'';const obsTag=ab.obs?'<p style="font-size:10px;color:#d97706;margin-top:1px">📝 '+esc(ab.obs)+'</p>':'';const motoTag=ab.motoUsada==="farmacia"?'<span style="background:#dbeafe;color:#2563eb;font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700;margin-left:4px">🏍 Moto Farmácia</span>':'';return'<div class="list-item"><div class="list-icon amber">'+IC.fuel+'</div><div class="list-body"><h4>'+esc(mbName(ab.motoboyId))+motoTag+plTag+'</h4><p>'+fmtDt(ab.data)+' · '+esc(ab.posto||"")+' · '+fN(ab.litros,2)+'L</p>'+obsTag+'</div><div class="list-value amber">'+fmt(ab.valor)+'</div><button class="btn-icon" onclick="editAbast(\''+ab.id+'\')">'+IC.edit+'</button><button class="btn-icon" onclick="if(confirm(\'Excluir este abastecimento?\'))deleteAbast(\''+ab.id+'\')">'+IC.trash+'</button></div>'}).join("");return'<div class="actions-bar"><span>'+s.length+' registros · '+fmt(totalFiltro)+' total</span><button class="btn btn-primary" onclick="addAbast()">'+IC.plus+' Abastecer</button></div>'+filtroBar()+'<div class="section animate-in">'+(l||'<p style="color:var(--text4);text-align:center;padding:20px">Nenhum abastecimento</p>')+'</div>'}
+
+function renderQuilometragem(){
+  const kms=data.quilometragem||[];
+  const sorted=filtrar([...kms]).sort((a,b)=>b.data.localeCompare(a.data));
+  const totalRodou=sorted.reduce((s,k)=>{const r=(k.kmFin||0)-(k.kmIni||0);return s+(r>0?r:0)},0);
+  let l=sorted.map(k=>{const rodou=(k.kmFin||0)-(k.kmIni||0);const obsTag=k.obs?'<p style="font-size:10px;color:#d97706;margin-top:1px">📝 '+esc(k.obs)+'</p>':'';const defMb=data.motoboys.find(m=>m.id===k.motoboyId);const defTag=defMb&&defMb.kmDefeito?'<span style="background:#fef3c7;color:#92400e;font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700;margin-left:4px">⚙ estimado</span>':'';const motoTag=k.motoUsada==="farmacia"?'<span style="background:#dbeafe;color:#2563eb;font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700;margin-left:4px">🏍 Farmácia</span>':'';return'<div class="list-item"><div class="list-icon blue" style="background:#dbeafe;color:#2563eb">'+IC.speed+'</div><div class="list-body"><h4>'+esc(mbName(k.motoboyId))+defTag+motoTag+'</h4><p>'+fmtDt(k.data)+' · KM: '+fN(k.kmIni||0,0)+' → '+fN(k.kmFin||0,0)+'</p>'+obsTag+'</div><div style="text-align:right"><div style="font-size:18px;font-weight:800;color:#2563eb">'+(rodou>0?fN(rodou,0):'—')+'</div><div style="font-size:10px;color:var(--text4)">km rodados</div></div><button class="btn-icon" onclick="editKm(\''+k.id+'\')">'+IC.edit+'</button><button class="btn-icon" onclick="if(confirm(\'Excluir este registro?\'))deleteKm(\''+k.id+'\')">'+IC.trash+'</button></div>'}).join("");
+  return'<div class="actions-bar"><span>'+sorted.length+' registros · '+fN(totalRodou,0)+' km total</span><button class="btn btn-primary" onclick="addKm()">'+IC.plus+' Registrar KM</button></div>'+filtroBar()+'<div class="section animate-in">'+(l||'<p style="color:var(--text4);text-align:center;padding:20px">Nenhuma quilometragem registrada</p>')+'</div>';
+}
+
+function renderManutencoes(){const k=calcKpis();const s=filtrar([...data.manutencoes]).sort((a,b)=>b.data.localeCompare(a.data));const tM=s.reduce((x,m)=>x+m.valor,0);let l=s.map(mn=>{const obsTag=mn.obs?'<p style="font-size:10px;color:#d97706;margin-top:1px">📝 '+esc(mn.obs)+'</p>':'';const localTag=mn.local?'<span style="font-size:10px;color:var(--text4)"> · 📍 '+esc(mn.local)+'</span>':'';return'<div class="list-item"><div class="list-icon purple">'+IC.wrench+'</div><div class="list-body"><h4>'+esc(mbName(mn.motoboyId))+'</h4><p>'+fmtDt(mn.data)+' · '+esc(mn.tipo)+' · '+esc(mn.descricao)+localTag+'</p>'+obsTag+'</div><div class="list-value purple">'+fmt(mn.valor)+'</div><button class="btn-icon" onclick="editManut(\''+mn.id+'\')">'+IC.edit+'</button><button class="btn-icon" onclick="if(confirm(\'Excluir esta manutenção?\'))deleteManut(\''+mn.id+'\')">'+IC.trash+'</button></div>'}).join("");return'<div class="actions-bar"><span>'+s.length+' registros · '+fmt(tM)+' total</span><button class="btn btn-primary" onclick="addManut()">'+IC.plus+' Nova Manutenção</button></div>'+filtroBar()+'<div class="section animate-in">'+(l||'<p style="color:var(--text4);text-align:center;padding:20px">Nenhuma manutenção</p>')+'</div>'}
+
+function renderEntregas(){const k=calcKpis(_dashMes||mesAtual());const s=filtrar([...data.entregas]).sort((a,b)=>b.data.localeCompare(a.data));const tEnt=s.reduce((x,e)=>x+e.qtd,0);let l=s.map(en=>{const obsTag=en.obs?'<p style="font-size:10px;color:#d97706;margin-top:1px">📝 '+esc(en.obs)+'</p>':'';const periodo=en.dataFim&&en.dataFim!==en.data?fmtDt(en.data)+' → '+fmtDt(en.dataFim):fmtDt(en.data);return'<div class="list-item"><div class="list-icon green">'+IC.delivery+'</div><div class="list-body"><h4>'+esc(mbName(en.motoboyId))+'</h4><p>'+periodo+'</p>'+obsTag+'</div><div style="text-align:right"><div style="font-size:20px;font-weight:800;color:#16a34a">'+en.qtd+'</div><div style="font-size:10px;color:var(--text4)">entregas</div></div><button class="btn-icon" onclick="editEntrega(\''+en.id+'\')">'+IC.edit+'</button><button class="btn-icon" onclick="if(confirm(\'Excluir?\'))deleteEntrega(\''+en.id+'\')">'+IC.trash+'</button></div>'}).join("");return'<div class="actions-bar"><span>'+tEnt+' entregas</span><button class="btn btn-primary" onclick="addEntrega()">'+IC.plus+' Registrar Entregas</button></div>'+filtroBar()+'<div class="section animate-in">'+(l||'<p style="color:var(--text4);text-align:center;padding:20px">Nenhuma entrega</p>')+'</div>'}
+
+function renderRelatorios(){const selMes=_dashMes||mesAtual();const k=calcKpis(selMes);const kAnt=calcKpis(mesAnterior(selMes));
+const meses=new Set();(data.abastecimentos||[]).concat(data.entregas||[]).concat(data.manutencoes||[]).forEach(r=>{if(r.data)meses.add(r.data.slice(0,7))});meses.add(mesAtual());
+const mesOpts=[...meses].sort().reverse().map(m=>'<option value="'+m+'"'+(m===selMes?' selected':'')+'>'+nomeMes(m)+'</option>').join("");
+
+// Médias da equipe
+const mbAtivos=k.porMb.filter(m=>m.ent>0);
+const avgCustoEnt=mbAtivos.length>0?mbAtivos.reduce((s,m)=>s+m.custoEnt,0)/mbAtivos.length:0;
+const avgLitPorEnt=mbAtivos.length>0?mbAtivos.reduce((s,m)=>s+(m.ent>0?m.lit/m.ent:0),0)/mbAtivos.length:0;
+const avgEntregas=mbAtivos.length>0?mbAtivos.reduce((s,m)=>s+m.ent,0)/mbAtivos.length:0;
+const avgComb=mbAtivos.length>0?mbAtivos.reduce((s,m)=>s+m.comb,0)/mbAtivos.length:0;
+
+// Resumo geral
+const resumo='<div class="section animate-in" style="border-left:4px solid var(--red)"><div class="section-title">📋 Resumo da Equipe — '+nomeMes(selMes)+'</div><div class="detail-grid"><div class="detail-card"><div class="dl">Média Custo/Entrega</div><div class="dv" style="color:var(--red)">'+fmt(avgCustoEnt)+'</div></div><div class="detail-card"><div class="dl">Média L/Entrega</div><div class="dv" style="color:#f59e0b">'+fN(avgLitPorEnt,2)+'</div></div><div class="detail-card"><div class="dl">Média Entregas</div><div class="dv" style="color:#16a34a">'+fN(avgEntregas,0)+'</div></div><div class="detail-card"><div class="dl">Média Gasto Comb.</div><div class="dv" style="color:#d97706">'+fmt(avgComb)+'</div></div></div></div>';
+
+let c=k.porMb.map(mb=>{
+  const ant=kAnt.porMb.find(a=>a.id===mb.id)||{comb:0,ent:0,lit:0,total:0,custoEnt:0};
+  const estTag=mb.kmEstimado?' <span style="background:#fef3c7;color:#92400e;font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700">⚙ estimado</span>':'';
+  const d=[{l:"Combustível",v:fmt(mb.comb),c:"#f59e0b"},{l:"Manutenção",v:fmt(mb.manut),c:"#8b5cf6"},{l:"Entregas",v:mb.ent,c:"#16a34a"},{l:"KM Rodados",v:fN(mb.km,0)+(mb.kmEstimado?' (est.)':''),c:"#2563eb"},{l:"Custo/Entrega",v:fmt(mb.custoEnt),c:"var(--red)"},{l:"Custo/KM",v:fmt(mb.custoKm)+(mb.kmEstimado?' (est.)':''),c:"#a855f7"},{l:"Consumo km/L",v:fN(mb.consumo)+(mb.kmEstimado?' (est.)':''),c:"#059669"},{l:"Litros Total",v:fN(mb.lit),c:"#d97706"}];
+
+  // Análise inteligente
+  const litPorEnt=mb.ent>0?mb.lit/mb.ent:0;
+  const pontos=[];const melhorias=[];
+
+  // Eficiência km/L (dados de quilometragem)
+  const ef=calcEficiencia(selMes).find(e=>e.id===mb.id)||{totalKm:0,totalLit:0,kml:0,metaKm:0,diff:0};
+  const efOk=ef.totalLit>0&&ef.kml>=META_KML;
+  const efQuase=ef.totalLit>0&&ef.kml>=META_KML*0.85;
+  const efBadge=ef.totalLit===0?'Sem dados km/L':efOk?'✓ Meta atingida':efQuase?'⚠ Quase na meta':'⚠ Abaixo da meta';
+  const efCor=ef.totalLit===0?'var(--text4)':efOk?'#16a34a':efQuase?'#d97706':'var(--red)';
+  const efBg=ef.totalLit===0?'var(--bg3)':efOk?'#dcfce7':efQuase?'#fef3c7':'#fee2e2';
+  const faltaKm=ef.totalLit>0?Math.max(0,ef.metaKm-ef.totalKm):0;
+
+  const efCard='<div style="margin-top:12px;border:1px solid '+efCor+'33;border-radius:10px;padding:14px;background:'+efBg+'22"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-size:13px;font-weight:700;color:'+efCor+'">🎯 Eficiência km/L <span style="background:'+efBg+';color:'+efCor+';font-size:10px;padding:2px 8px;border-radius:4px;font-weight:700;margin-left:6px">'+efBadge+'</span></div><div style="font-size:20px;font-weight:800;color:'+efCor+'">'+fN(ef.kml,1)+' km/L</div></div><div class="detail-grid"><div class="detail-card"><div class="dl">KM Rodados</div><div class="dv" style="color:#2563eb">'+fN(ef.totalKm,0)+'</div></div><div class="detail-card"><div class="dl">Litros</div><div class="dv" style="color:#f59e0b">'+fN(ef.totalLit,1)+'L</div></div><div class="detail-card"><div class="dl">km/L Real</div><div class="dv" style="color:'+efCor+'">'+fN(ef.kml,1)+'</div></div><div class="detail-card"><div class="dl">Falta p/ meta</div><div class="dv" style="color:'+(faltaKm>0?'var(--red)':'#16a34a')+'">'+(faltaKm>0?fN(faltaKm,0)+' km':'0 km ✓')+'</div></div></div>'
+  +(ef.totalLit>0&&!efOk&&!efQuase?'<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:8px;margin-top:8px;font-size:11px;color:#991b1b">⚠ Rodou '+fN(ef.totalKm,0)+'km com '+fN(ef.totalLit,1)+'L — deveria ter rodado '+fN(ef.metaKm,0)+'km ('+META_KML+'km/L). <strong>Faltaram '+fN(faltaKm,0)+'km.</strong> Verificar: condução, pneus, moto precisa de revisão?</div>':'')
+  +(ef.totalLit>0&&efOk?'<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:8px;margin-top:8px;font-size:11px;color:#166534">✅ Bom desempenho! Rodou '+fN(ef.totalKm,0)+'km com '+fN(ef.totalLit,1)+'L — atingiu a meta de '+META_KML+'km/L. Continue assim!</div>':'')
+  +'</div>';
+
+  // Análise de entregas
+  if(mb.ent===0){melhorias.push({ico:"📦",txt:"Sem entregas registradas neste mês. Verificar se os lançamentos estão sendo feitos.",tip:"Orientar a registrar entregas diariamente no sistema."})
+  }else if(mb.ent>=avgEntregas*1.1){pontos.push({ico:"🏆",txt:"Volume de entregas acima da média da equipe ("+mb.ent+" vs média "+fN(avgEntregas,0)+"). Bom desempenho!"})
+  }else if(mb.ent<avgEntregas*0.8&&avgEntregas>0){melhorias.push({ico:"📦",txt:"Volume de entregas abaixo da média ("+mb.ent+" vs média "+fN(avgEntregas,0)+").",tip:"Avaliar se a rota pode ser otimizada ou se há tempo ocioso."})}
+
+  // Análise km/L vs meta
+  if(ef.totalLit>0&&ef.kml<META_KML*0.85){melhorias.push({ico:"🎯",txt:"Média de "+fN(ef.kml,1)+" km/L está abaixo da meta de "+META_KML+" km/L.",tip:"Verificar calibragem dos pneus, condução econômica, e estado geral da moto."})}
+  else if(ef.totalLit>0&&ef.kml>=META_KML){pontos.push({ico:"🎯",txt:"Média de "+fN(ef.kml,1)+" km/L atinge a meta de "+META_KML+" km/L. Excelente economia de combustível!"})}
+
+  // Análise de combustível
+  if(mb.comb>0&&litPorEnt>avgLitPorEnt*1.15&&avgLitPorEnt>0){melhorias.push({ico:"⛽",txt:"Consumo de "+fN(litPorEnt,2)+" L/entrega está acima da média ("+fN(avgLitPorEnt,2)+" L/ent).",tip:"Verificar condução, calibragem dos pneus, e se a moto precisa de revisão."})
+  }else if(mb.comb>0&&litPorEnt<=avgLitPorEnt&&litPorEnt>0){pontos.push({ico:"⛽",txt:"Eficiência de combustível boa: "+fN(litPorEnt,2)+" L/entrega (média "+fN(avgLitPorEnt,2)+"). Parabéns pela economia!"})}
+
+  // Análise de custo
+  if(mb.custoEnt>avgCustoEnt*1.2&&avgCustoEnt>0&&mb.ent>0){melhorias.push({ico:"💰",txt:"Custo por entrega de "+fmt(mb.custoEnt)+" está 20%+ acima da média ("+fmt(avgCustoEnt)+").",tip:"Focar em reduzir abastecimentos desnecessários e manter a moto em dia."})
+  }else if(mb.custoEnt<=avgCustoEnt&&mb.custoEnt>0){pontos.push({ico:"💰",txt:"Custo por entrega de "+fmt(mb.custoEnt)+" está dentro ou abaixo da média. Ótimo controle de gastos!"})}
+
+  // Análise de evolução vs mês anterior
+  if(ant.ent>0&&mb.ent>0){
+    if(mb.custoEnt<ant.custoEnt*0.9){pontos.push({ico:"📈",txt:"Custo/entrega melhorou em relação ao mês anterior (de "+fmt(ant.custoEnt)+" para "+fmt(mb.custoEnt)+"). Continue assim!"})}
+    if(mb.custoEnt>ant.custoEnt*1.15){melhorias.push({ico:"📉",txt:"Custo/entrega piorou vs mês anterior (de "+fmt(ant.custoEnt)+" para "+fmt(mb.custoEnt)+").",tip:"Comparar o que mudou: mais abastecimentos? Preço do combustível subiu? Manutenção extra?"})}
+    if(mb.ent>ant.ent*1.1){pontos.push({ico:"📈",txt:"Entregas aumentaram de "+ant.ent+" para "+mb.ent+" vs mês anterior. Boa produtividade!"})}
+  }
+
+  // Nota geral
+  const totalPontos=pontos.length;const totalMelhorias=melhorias.length;
+  let nota,notaCor,notaBg;
+  if(mb.ent===0){nota="⏳ Sem dados";notaCor="#92400e";notaBg="#fef3c7"}
+  else if(totalMelhorias===0){nota="⭐ Excelente";notaCor="#16a34a";notaBg="#dcfce7"}
+  else if(totalPontos>=totalMelhorias){nota="👍 Bom";notaCor="#2563eb";notaBg="#dbeafe"}
+  else{nota="⚠ Atenção";notaCor="#d97706";notaBg="#fef3c7"}
+
+  let feedbackHtml='<div style="margin-top:14px">';
+  if(pontos.length>0){feedbackHtml+='<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px;margin-bottom:8px">'+pontos.map(p=>'<div style="display:flex;gap:8px;padding:4px 0;font-size:12px;color:#166534"><span>'+p.ico+'</span><span>'+esc(p.txt)+'</span></div>').join("")+'</div>'}
+  if(melhorias.length>0){feedbackHtml+='<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px">'+melhorias.map(m=>'<div style="padding:4px 0;font-size:12px;color:#991b1b"><div style="display:flex;gap:8px"><span>'+m.ico+'</span><span style="font-weight:600">'+esc(m.txt)+'</span></div>'+(m.tip?'<div style="margin-left:24px;color:#b91c1c;font-style:italic;font-size:11px;margin-top:2px">💡 '+esc(m.tip)+'</div>':'')+'</div>').join("")+'</div>'}
+  feedbackHtml+='</div>';
+
+  return'<div class="section animate-in"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px"><div><div style="font-size:16px;font-weight:700">'+esc(mb.nome)+estTag+' <span style="background:'+notaBg+';color:'+notaCor+';font-size:11px;padding:3px 8px;border-radius:6px;font-weight:700;margin-left:6px">'+nota+'</span></div><div style="font-size:12px;color:var(--text3)">'+esc(mb.moto)+' · '+esc(mb.placa)+'</div></div><div style="font-size:22px;font-weight:800;color:var(--red)">'+fmt(mb.total)+'</div></div><div class="detail-grid">'+d.map(x=>'<div class="detail-card"><div class="dl">'+x.l+'</div><div class="dv" style="color:'+x.c+'">'+x.v+'</div></div>').join("")+'</div>'+efCard+feedbackHtml+'</div>';
+}).join("");
+
+return'<div class="actions-bar"><span style="font-size:15px;font-weight:700">Relatório por Motoboy</span><div style="display:flex;gap:8px"><select onchange="setDashMes(this.value)" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;background:var(--white);color:var(--red);font-weight:700">'+mesOpts+'</select><button class="btn btn-ghost" onclick="window.print()" style="font-size:12px">🖨️</button></div></div>'+resumo+c}
+
+// ═══════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════
+function renderTopbar(){
+  const el=document.getElementById("sync-badge");if(!el)return;
+  const map={loading:['sync-badge sync-loading','⟳ Carregando...'],ok:['sync-badge sync-ok','● Sincronizado'],saving:['sync-badge sync-saving','⟳ Salvando...'],error:['sync-badge sync-err','✕ Erro de conexão']};
+  const[cls,txt]=map[syncStatus]||map.error;
+  el.className=cls;el.textContent=txt;
+}
+
+function render(){
+  if(!data){document.getElementById("app").innerHTML='<div class="loading-screen"><img src="'+LOGO+'" alt="Farmácia Luz"><div class="spinner"></div><div style="color:var(--text3);font-size:14px">Conectando ao servidor...</div></div><div id="toast"></div>';return}
+  const cur=NAV.find(n=>n.key===page)||NAV[0];
+  const pgs={dashboard:renderDashboard,motoboys:renderMotoboys,quilometragem:renderQuilometragem,abastecimentos:renderAbastecimentos,manutencoes:renderManutencoes,entregas:renderEntregas,relatorios:renderRelatorios};
+  const pc=(pgs[page]||renderDashboard)();
+  const isMob=window.innerWidth<=768;
+  const sCls=isMob?(sideOpen?"sidebar open":"sidebar closed"):"sidebar";
+  const ov=sideOpen&&isMob?'<div class="sidebar-overlay show" onclick="toggleSide()"></div>':"";
+  const stMap={loading:'sync-badge sync-loading',ok:'sync-badge sync-ok',saving:'sync-badge sync-saving',error:'sync-badge sync-err'};
+  const stTxt={loading:'⟳ Carregando...',ok:'● Sincronizado',saving:'⟳ Salvando...',error:'✕ Erro'};
+  const modal=modalOpen?'<div class="modal-overlay" onclick="closeModal()"><div class="modal" onclick="event.stopPropagation()"><div class="modal-header"><h3>'+modalTitle+'</h3><button class="btn-icon" onclick="closeModal()">'+IC.x+'</button></div><div class="modal-body">'+modalHTML+'</div></div></div>':"";
+  document.getElementById("app").innerHTML=ov
+    +'<aside class="'+sCls+'"><div class="sidebar-header"><img src="'+LOGO+'" alt="Farmácia Luz"></div><nav class="sidebar-nav">'+NAV.map(n=>'<button class="nav-btn'+(page===n.key?" active":"")+'" onclick="navigate(\''+n.key+'\')">'+n.icon+'<span>'+n.label+'</span></button>').join("")+'</nav><div class="sidebar-footer"><button class="btn-foot" onclick="exportarDados()">💾 Exportar Backup</button><button class="btn-foot" onclick="recarregar()">'+IC.refresh+' Atualizar</button><button class="btn-foot" onclick="resetData()">Resetar Exemplo</button></div></aside>'
+    +'<div class="main"><header class="topbar"><button class="menu-btn" onclick="toggleSide()">'+IC.menu+'</button><span class="topbar-icon">'+cur.icon+'</span><h2>'+cur.label+'</h2><span id="sync-badge" class="'+(stMap[syncStatus]||stMap.error)+'">'+(stTxt[syncStatus]||stTxt.error)+'</span></header><div class="content">'+pc+'</div></div>'+modal+'<div id="toast"></div>';
+}
+
+// ═══════════════════════════════════════
+// INIT — Abre instantâneo, sincroniza depois
+// ═══════════════════════════════════════
+let _cloudReady=false;
+
+// Garante que todos os arrays existem (dados antigos podem não ter quilometragem)
+function ensureStructure(d){
+  if(!d)return d;
+  if(!d.motoboys)d.motoboys=[];
+  if(!d.abastecimentos)d.abastecimentos=[];
+  if(!d.manutencoes)d.manutencoes=[];
+  if(!d.entregas)d.entregas=[];
+  if(!d.quilometragem)d.quilometragem=[];
+  if(!d.postos){
+    // Auto-popula com postos já usados nos abastecimentos existentes
+    const set=new Set();d.abastecimentos.forEach(a=>{if(a.posto)set.add(a.posto)});
+    d.postos=[...set];
+  }
+  return d;
+}
+
+// Helpers para formulário de abastecimento
+function togglePostoOutro(){const s=document.getElementById("f_posto_sel");const w=document.getElementById("f_posto_outro_wrap");if(s&&w){w.style.display=s.value==="__outro"?"":"none"}}
+function atualizaMotoAbast(){}
+
+function localLoad(){try{const s=localStorage.getItem(STORAGE_KEY);if(s){const d=JSON.parse(s);if(d&&d.motoboys)return ensureStructure(d)}}catch(e){}return null}
+function localSave(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data))}catch(e){}}
+
+async function init(){
+  data=ensureStructure(localLoad()||JSON.parse(JSON.stringify(DEFAULT)));
+  syncStatus="loading";
+  render();
+
+  try{
+    const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error("Timeout")),8000));
+    const cloud=await Promise.race([cloudLoad(),timeout]);
+    if(cloud&&cloud.motoboys){
+      data=ensureStructure(cloud);
+      localSave();
+      syncStatus="ok";
+    }else{
+      syncStatus="error";
+    }
+  }catch(e){
+    syncStatus="error";
+    showToast("⚠ Offline — edições ficam locais até reconectar",4000);
+  }
+  // SEMPRE libera a trava após init — a proteção real é não sobrescrever com DEFAULT
+  _cloudReady=true;
+  render();
+}
+
+// Salva local + nuvem
+function saveData(){
+  localSave();
+  if(_cloudReady){cloudSave()}
+  render();
+}
+
+init();
+window.addEventListener("resize",()=>render());
+if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{})}
+</script>
+</body>
+</html>
