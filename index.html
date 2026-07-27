@@ -269,7 +269,7 @@ function calcKpis(mes){
   const entOk=mbsOk.reduce((s,mb)=>s+en.filter(e=>e.motoboyId===mb.id).reduce((s2,e)=>s2+e.qtd,0),0);
   const avgKmPorEnt=entOk>0?kmOk/entOk:2.5;
 
-  const porMb=data.motoboys.map(mb=>{
+  const porMb=data.motoboys.filter(mb=>mb.status!=="inativo").map(mb=>{
     const comb=ab.filter(a=>a.motoboyId===mb.id).reduce((s,a)=>s+a.valor,0);
     const manut=mn.filter(m=>m.motoboyId===mb.id).reduce((s,m)=>s+m.valor,0);
     const ent2=en.filter(e=>e.motoboyId===mb.id).reduce((s,e)=>s+e.qtd,0);
