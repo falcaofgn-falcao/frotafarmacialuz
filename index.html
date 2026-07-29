@@ -348,7 +348,7 @@ function resetData(){if(confirm("Resetar dados para o padrão de exemplo?")){dat
 // ═══════════════════════════════════════
 // SALVAR UNIVERSAL
 // ═══════════════════════════════════════
-function salvar(){
+async function salvar(){
   const gv=id=>{const el=document.getElementById(id);return el?el.value:""};
   const gn=id=>parseFloat(gv(id))||0;
   if(_editType==="motoboy"){
@@ -392,27 +392,51 @@ function salvar(){
     if(_editId){const r=data.entregas.find(e=>e.id===_editId);if(r)Object.assign(r,obj)}
     else{data.entregas.push({id:"en"+uid(),...obj})}
   }
-  saveData();
+  // Captura dados do alerta ANTES de salvar (saveData reconstrói o DOM)
+  var _alertMb=(_editType==="abast"||_editType==="km")?gv("f_mb"):null;
+  var _alertType=_editType;
   
-  // ALERTA DE EFICIÊNCIA após lançar abastecimento ou km
-  if(_editType==="abast"||_editType==="km"){
-    var alertMb=_editType==="abast"?document.getElementById("f_mb")?.value:document.getElementById("f_mb")?.value;
-    if(alertMb){
-      var mbNome=mbName(alertMb);
-      var mesAtualStr=today().slice(0,7);
-      var ef=calcEficiencia(mesAtualStr).find(function(e){return e.id===alertMb});
-      if(ef&&ef.totalLit>0){
-        var metaKm=ef.totalLit*META_KML;
-        var falta=Math.max(0,metaKm-ef.totalKm);
-        var msg;
-        if(ef.kml>=META_KML){
-          msg="✅ "+mbNome+": "+fN(ef.kml,1)+" km/L — META ATINGIDA! Rodou "+fN(ef.totalKm,0)+"km com "+fN(ef.totalLit,1)+"L. Parabéns!";
-        }else if(falta>0){
-          msg="⚠ "+mbNome+": "+fN(ef.kml,1)+" km/L — FALTAM "+fN(falta,0)+"km para bater a meta de "+META_KML+"km/L. Precisa rodar "+fN(metaKm,0)+"km com "+fN(ef.totalLit,1)+"L, já rodou "+fN(ef.totalKm,0)+"km.";
-        }else{
-          msg="🎯 "+mbNome+": "+fN(ef.kml,1)+" km/L (meta: "+META_KML+"km/L)";
-        }
-        showToast(msg,8000);
+  await saveData();
+  
+  // ALERTA ao abastecer — mostra km que falta rodar do abastecimento anterior
+  if(_alertType==="abast"&&_alertMb){
+    var mbNome2=mbName(_alertMb);
+    // Pega os 2 últimos abastecimentos deste motoboy (o atual + o anterior)
+    var absOrden=data.abastecimentos.filter(function(a){return a.motoboyId===_alertMb}).sort(function(a,b){return b.data.localeCompare(a.data)});
+    if(absOrden.length>=2){
+      var abAnterior=absOrden[1]; // penúltimo abastecimento
+      var litAnt=abAnterior.litros;
+      var metaKmAnt=litAnt*META_KML;
+      // KM rodados entre o abastecimento anterior e agora
+      var kmsEntre=(data.quilometragem||[]).filter(function(k){return k.motoboyId===_alertMb&&k.data>=abAnterior.data&&k.kmFin>k.kmIni});
+      var kmRodado=kmsEntre.reduce(function(s,k){return s+(k.kmFin-k.kmIni)},0);
+      var faltaKm2=Math.max(0,metaKmAnt-kmRodado);
+      if(faltaKm2>0){
+        showToast("⚠ "+mbNome2+": No abastecimento anterior ("+fmtDt(abAnterior.data)+") colocou "+fN(litAnt,1)+"L. Deveria rodar "+fN(metaKmAnt,0)+"km, rodou "+fN(kmRodado,0)+"km. FALTAM "+fN(faltaKm2,0)+"km!",10000);
+      }else{
+        showToast("✅ "+mbNome2+": Abastecimento anterior ("+fN(litAnt,1)+"L) — rodou "+fN(kmRodado,0)+"km de "+fN(metaKmAnt,0)+"km necessários. META OK!",8000);
+      }
+    }else if(absOrden.length===1){
+      var litNovo=absOrden[0].litros;
+      var metaNovo=litNovo*META_KML;
+      showToast("🎯 "+mbNome2+": Primeiro abastecimento registrado ("+fN(litNovo,1)+"L). Precisa rodar "+fN(metaNovo,0)+"km para atingir "+META_KML+"km/L.",8000);
+    }
+  }
+  
+  // ALERTA ao lançar KM — mostra quanto falta do abastecimento atual
+  if(_alertType==="km"&&_alertMb){
+    var mbNome3=mbName(_alertMb);
+    var ultimoAb=data.abastecimentos.filter(function(a){return a.motoboyId===_alertMb}).sort(function(a,b){return b.data.localeCompare(a.data)})[0];
+    if(ultimoAb){
+      var litUlt=ultimoAb.litros;
+      var metaUlt=litUlt*META_KML;
+      var kmsDesde=(data.quilometragem||[]).filter(function(k){return k.motoboyId===_alertMb&&k.data>=ultimoAb.data&&k.kmFin>k.kmIni});
+      var kmDesde=kmsDesde.reduce(function(s,k){return s+(k.kmFin-k.kmIni)},0);
+      var faltaUlt=Math.max(0,metaUlt-kmDesde);
+      if(faltaUlt>0){
+        showToast("🎯 "+mbNome3+": Último abastecimento "+fN(litUlt,1)+"L ("+fmtDt(ultimoAb.data)+"). Rodou "+fN(kmDesde,0)+"km de "+fN(metaUlt,0)+"km. FALTAM "+fN(faltaUlt,0)+"km.",10000);
+      }else{
+        showToast("✅ "+mbNome3+": Rodou "+fN(kmDesde,0)+"km com "+fN(litUlt,1)+"L — META DE "+META_KML+"km/L ATINGIDA!",8000);
       }
     }
   }
@@ -482,7 +506,7 @@ let compMb=k.porMb.map(m=>{const ant=kAnt.porMb.find(a=>a.id===m.id)||{comb:0,en
 const maxLit=Math.max(...k.porMb.map(m=>m.lit),1);const maxEnt2=Math.max(...k.porMb.map(m=>m.ent),1);
 const sorted2=[...k.porMb].sort((a,b)=>(b.lit/Math.max(b.ent,1))-(a.lit/Math.max(a.ent,1)));
 let compRows=sorted2.map((m,i)=>{const lp=(m.lit/maxLit*100);const ep=(m.ent/maxEnt2*100);const lpe=m.ent>0?(m.lit/m.ent):0;const w=i===0&&sorted2.length>1;const be=i===sorted2.length-1&&sorted2.length>1;const tg=w?'<span style="background:#fee2e2;color:var(--red);font-size:9px;padding:2px 6px;border-radius:4px;font-weight:700;margin-left:6px">⚠ MAIS GASTO</span>':be?'<span style="background:#dcfce7;color:#16a34a;font-size:9px;padding:2px 6px;border-radius:4px;font-weight:700;margin-left:6px">✓ MAIS EFICIENTE</span>':'';return'<div style="padding:14px 0;border-bottom:1px solid var(--bg3)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-size:14px;font-weight:700">'+esc(m.nome)+tg+'</div><div style="font-size:13px;font-weight:700;color:var(--text2)">'+fN(lpe,2)+' L/ent</div></div><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:10px;color:var(--text4);width:65px;flex-shrink:0">⛽ '+fN(m.lit)+' L</span><div style="flex:1;height:14px;background:var(--bg3);border-radius:4px;overflow:hidden"><div style="width:'+lp+'%;height:100%;background:linear-gradient(90deg,#f59e0b,#fbbf24);border-radius:4px"></div></div><span style="font-size:10px;color:#f59e0b;font-weight:700;width:55px;text-align:right">'+fmt(m.comb)+'</span></div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:10px;color:var(--text4);width:65px;flex-shrink:0">📦 '+m.ent+' ent.</span><div style="flex:1;height:14px;background:var(--bg3);border-radius:4px;overflow:hidden"><div style="width:'+ep+'%;height:100%;background:linear-gradient(90deg,#16a34a,#4ade80);border-radius:4px"></div></div><span style="font-size:10px;color:#16a34a;font-weight:700;width:55px;text-align:right">'+fN(m.km,0)+' km</span></div></div>'}).join("");
-return mesSel+renderAlertasManut()+'<div class="kpi-grid animate-in"><div class="kpi-card red"><div class="kpi-label">Gasto '+nomeMes(selMes)+'</div><div class="kpi-value red">'+fmt(k.tGeral)+vari(k.tGeral,kAnt.tGeral)+'</div><div class="kpi-sub">ant: '+fmt(kAnt.tGeral)+'</div></div><div class="kpi-card amber"><div class="kpi-label">Custo/Entrega</div><div class="kpi-value amber">'+fmt(k.custoEnt)+vari(k.custoEnt,kAnt.custoEnt)+'</div><div class="kpi-sub">'+k.tEnt+' ent (ant: '+kAnt.tEnt+')</div></div><div class="kpi-card purple"><div class="kpi-label">Custo/KM</div><div class="kpi-value purple">'+fmt(k.custoKm)+'</div><div class="kpi-sub">'+fN(k.tKm,0)+' km</div></div><div class="kpi-card green"><div class="kpi-label">Consumo Medio</div><div class="kpi-value green">'+fN(k.consumo)+' km/L</div><div class="kpi-sub">'+fN(k.tLit)+' litros</div></div></div><div class="section animate-in"><div class="section-title">📅 '+nomeMes(selMes)+' x '+nomeMes(mesAnt)+' — Por Colaborador</div>'+compMb+'</div><div class="section animate-in"><div class="section-title">Gasto por Motoboy</div><div class="bar-chart" style="height:'+(bH+40)+'px">'+bars+'</div></div><div class="kpi-grid animate-in">'+comp.map(c=>'<div class="section" style="margin-bottom:0"><div class="kpi-label">'+c.l+'</div><div style="font-size:20px;font-weight:800;color:'+c.c+';margin:6px 0">'+fmt(c.v)+'</div><div class="progress-bar"><div class="progress-fill" style="width:'+c.p+'%;background:'+c.c+'"></div></div><div style="font-size:11px;color:var(--text4);margin-top:4px">'+fN(c.p)+'% do total</div></div>').join("")+'</div><div class="section animate-in" style="margin-top:16px"><div class="section-title">Comparativo: Abastecimento x Entregas</div><p style="font-size:12px;color:var(--text3);margin:-8px 0 12px">Ordenado do menos eficiente ao mais eficiente.</p>'+compRows+'</div><div class="section animate-in" style="margin-top:16px">'+renderEficiencia(selMes)+'<div class="section-title">Ranking de Eficiencia</div>'+rank+'</div>'}
+return mesSel+renderAlertasManut()+'<div class="kpi-grid animate-in"><div class="kpi-card red"><div class="kpi-label">Gasto '+nomeMes(selMes)+'</div><div class="kpi-value red">'+fmt(k.tGeral)+vari(k.tGeral,kAnt.tGeral)+'</div><div class="kpi-sub">ant: '+fmt(kAnt.tGeral)+'</div></div><div class="kpi-card amber"><div class="kpi-label">Custo/Entrega</div><div class="kpi-value amber">'+fmt(k.custoEnt)+vari(k.custoEnt,kAnt.custoEnt)+'</div><div class="kpi-sub">'+k.tEnt+' ent (ant: '+kAnt.tEnt+')</div></div><div class="kpi-card purple"><div class="kpi-label">Custo/KM</div><div class="kpi-value purple">'+fmt(k.custoKm)+'</div><div class="kpi-sub">'+fN(k.tKm,0)+' km</div></div><div class="kpi-card green"><div class="kpi-label">Consumo Medio</div><div class="kpi-value green">'+fN(k.consumo)+' km/L</div><div class="kpi-sub">'+fN(k.tLit)+' litros</div></div></div><div class="section animate-in">'+renderEficiencia(selMes)+'<div class="section-title">📅 '+nomeMes(selMes)+' x '+nomeMes(mesAnt)+' — Por Colaborador</div>'+compMb+'</div><div class="section animate-in"><div class="section-title">Gasto por Motoboy</div><div class="bar-chart" style="height:'+(bH+40)+'px">'+bars+'</div></div><div class="kpi-grid animate-in">'+comp.map(c=>'<div class="section" style="margin-bottom:0"><div class="kpi-label">'+c.l+'</div><div style="font-size:20px;font-weight:800;color:'+c.c+';margin:6px 0">'+fmt(c.v)+'</div><div class="progress-bar"><div class="progress-fill" style="width:'+c.p+'%;background:'+c.c+'"></div></div><div style="font-size:11px;color:var(--text4);margin-top:4px">'+fN(c.p)+'% do total</div></div>').join("")+'</div><div class="section animate-in" style="margin-top:16px"><div class="section-title">Comparativo: Abastecimento x Entregas</div><p style="font-size:12px;color:var(--text3);margin:-8px 0 12px">Ordenado do menos eficiente ao mais eficiente.</p>'+compRows+'</div><div class="section animate-in" style="margin-top:16px"><div class="section-title">Ranking de Eficiencia</div>'+rank+'</div>'}
 
 
 function renderEficiencia(mes){
@@ -524,7 +548,7 @@ function renderQuilometragem(){
 
 function renderManutencoes(){const k=calcKpis();const s=filtrar([...data.manutencoes]).sort((a,b)=>b.data.localeCompare(a.data));const tM=s.reduce((x,m)=>x+m.valor,0);let l=s.map(mn=>{const obsTag=mn.obs?'<p style="font-size:10px;color:#d97706;margin-top:1px">📝 '+esc(mn.obs)+'</p>':'';const localTag=mn.local?'<span style="font-size:10px;color:var(--text4)"> · 📍 '+esc(mn.local)+'</span>':'';return'<div class="list-item"><div class="list-icon purple">'+IC.wrench+'</div><div class="list-body"><h4>'+esc(mbName(mn.motoboyId))+'</h4><p>'+fmtDt(mn.data)+' · '+esc(mn.tipo)+' · '+esc(mn.descricao)+localTag+'</p>'+obsTag+'</div><div class="list-value purple">'+fmt(mn.valor)+'</div><button class="btn-icon" onclick="editManut(\''+mn.id+'\')">'+IC.edit+'</button><button class="btn-icon" onclick="if(confirm(\'Excluir esta manutenção?\'))deleteManut(\''+mn.id+'\')">'+IC.trash+'</button></div>'}).join("");return'<div class="actions-bar"><span>'+s.length+' registros · '+fmt(tM)+' total</span><button class="btn btn-primary" onclick="addManut()">'+IC.plus+' Nova Manutenção</button></div>'+filtroBar()+'<div class="section animate-in">'+(l||'<p style="color:var(--text4);text-align:center;padding:20px">Nenhuma manutenção</p>')+'</div>'}
 
-function renderEntregas(){const k=calcKpis(_dashMes||mesAtual());const s=filtrar([...data.entregas]).sort((a,b)=>b.data.localeCompare(a.data));const tEnt=s.reduce((x,e)=>x+e.qtd,0);let l=s.map(en=>{const obsTag=en.obs?'<p style="font-size:10px;color:#d97706;margin-top:1px">📝 '+esc(en.obs)+'</p>':'';const periodo=en.dataFim&&en.dataFim!==en.data?fmtDt(en.data)+' → '+fmtDt(en.dataFim):fmtDt(en.data);return'<div class="list-item"><div class="list-icon green">'+IC.delivery+'</div><div class="list-body"><h4>'+esc(mbName(en.motoboyId))+'</h4><p>'+periodo+'</p>'+obsTag+'</div><div style="text-align:right"><div style="font-size:20px;font-weight:800;color:#16a34a">'+en.qtd+'</div><div style="font-size:10px;color:var(--text4)">entregas</div></div><button class="btn-icon" onclick="editEntrega(\''+en.id+'\')">'+IC.edit+'</button><button class="btn-icon" onclick="if(confirm(\'Excluir?\'))deleteEntrega(\''+en.id+'\')">'+IC.trash+'</button></div>'}).join("");return'<div class="actions-bar"><span>'+tEnt+' entregas</span><button class="btn btn-primary" onclick="addEntrega()">'+IC.plus+' Registrar Entregas</button></div>'+filtroBar()+'<div class="section animate-in">'+(l||'<p style="color:var(--text4);text-align:center;padding:20px">Nenhuma entrega</p>')+'</div>'}
+function renderEntregas(){const k=calcKpis(_dashMes||mesAtual());const s=filtrar([...data.entregas]).sort((a,b)=>b.data.localeCompare(a.data));const tEnt=s.reduce((x,e)=>x+e.qtd,0);let l=s.map(en=>{const obsTag=en.obs?'<p style="font-size:10px;color:#d97706;margin-top:1px">📝 '+esc(en.obs)+'</p>':'';const periodo=en.dataFim&&en.dataFim!==en.data?fmtDt(en.data)+' → '+fmtDt(en.dataFim):fmtDt(en.data);const d1=new Date(en.data);const d2=en.dataFim?new Date(en.dataFim):d1;const dias=Math.max(1,Math.round((d2-d1)/(86400000))+1);const media=en.qtd>0?fN(en.qtd/dias,1):'0';const mediaTag=dias>1?'<span style="font-size:10px;color:#2563eb;font-weight:600;margin-left:6px">≈ '+media+'/dia ('+dias+' dias)</span>':'';return'<div class="list-item"><div class="list-icon green">'+IC.delivery+'</div><div class="list-body"><h4>'+esc(mbName(en.motoboyId))+mediaTag+'</h4><p>'+periodo+'</p>'+obsTag+'</div><div style="text-align:right"><div style="font-size:20px;font-weight:800;color:#16a34a">'+en.qtd+'</div><div style="font-size:10px;color:var(--text4)">entregas</div></div><button class="btn-icon" onclick="editEntrega(\''+en.id+'\')">'+IC.edit+'</button><button class="btn-icon" onclick="if(confirm(\'Excluir?\'))deleteEntrega(\''+en.id+'\')">'+IC.trash+'</button></div>'}).join("");return'<div class="actions-bar"><span>'+tEnt+' entregas</span><button class="btn btn-primary" onclick="addEntrega()">'+IC.plus+' Registrar Entregas</button></div>'+filtroBar()+'<div class="section animate-in">'+(l||'<p style="color:var(--text4);text-align:center;padding:20px">Nenhuma entrega</p>')+'</div>'}
 
 function renderRelatorios(){const selMes=_dashMes||mesAtual();const k=calcKpis(selMes);const kAnt=calcKpis(mesAnterior(selMes));
 const meses=new Set();(data.abastecimentos||[]).concat(data.entregas||[]).concat(data.manutencoes||[]).forEach(r=>{if(r.data)meses.add(r.data.slice(0,7))});meses.add(mesAtual());
@@ -683,10 +707,10 @@ async function init(){
   render();
 }
 
-// Salva local + nuvem
-function saveData(){
+// Salva local + nuvem (aguarda nuvem completar)
+async function saveData(){
   localSave();
-  if(_cloudReady){cloudSave()}
+  if(_cloudReady){await cloudSave()}
   render();
 }
 
