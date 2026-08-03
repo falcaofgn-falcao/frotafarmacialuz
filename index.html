@@ -197,17 +197,15 @@ function calcEficiencia(mes){
   const kms=(data.quilometragem||[]).filter(k=>!mes||k.data?.startsWith(mes));
   const abs=data.abastecimentos.filter(a=>!mes||a.data?.startsWith(mes));
   
-  // Primeiro calcula km/L médio dos motoboys COM hodômetro funcionando
+  // Calcula média de KM RODADOS dos motoboys COM hodômetro funcionando
   const mbsOk=data.motoboys.filter(m=>!m.kmDefeito&&m.status!=="inativo");
-  let somaKmlOk=0,countOk=0;
+  let somaKmOk=0,countOk=0;
   mbsOk.forEach(mb=>{
     const mKms=kms.filter(k=>k.motoboyId===mb.id&&k.kmFin>k.kmIni);
-    const mAbs=abs.filter(a=>a.motoboyId===mb.id);
     const tk=mKms.reduce((s,k)=>s+(k.kmFin-k.kmIni),0);
-    const tl=mAbs.reduce((s,a)=>s+a.litros,0);
-    if(tl>0&&tk>0){somaKmlOk+=tk/tl;countOk++}
+    if(tk>0){somaKmOk+=tk;countOk++}
   });
-  const avgKmlEquipe=countOk>0?somaKmlOk/countOk:META_KML;
+  const avgKmEquipe=countOk>0?Math.round(somaKmOk/countOk):0;
 
   return data.motoboys.map(mb=>{
     const mKms=kms.filter(k=>k.motoboyId===mb.id&&k.kmFin>k.kmIni);
@@ -215,15 +213,15 @@ function calcEficiencia(mes){
     const totalKmReal=mKms.reduce((s,k)=>s+(k.kmFin-k.kmIni),0);
     const totalLit=mAbs.reduce((s,a)=>s+a.litros,0);
     
-    // Se hodômetro com defeito, estima km pela média da equipe
-    const kmEstimado=mb.kmDefeito&&totalLit>0;
-    const totalKm=kmEstimado?Math.round(totalLit*avgKmlEquipe):totalKmReal;
+    // Se hodômetro com defeito, estima km pela média de KM RODADOS da equipe
+    const kmEstimado=mb.kmDefeito&&countOk>0;
+    const totalKm=kmEstimado?avgKmEquipe:totalKmReal;
     
     const kml=totalLit>0?totalKm/totalLit:0;
     const metaKm=totalLit*META_KML;
     const diff=totalKm-metaKm;
     const ultimoAb=mAbs.sort((a,b)=>b.data.localeCompare(a.data))[0];
-    return{...mb,totalKm,totalKmReal,totalLit,kml,metaKm,diff,kmEstimado,avgKmlEquipe,ok:kml>=META_KML*0.85||totalLit===0,ultimoAb};
+    return{...mb,totalKm,totalKmReal,totalLit,kml,metaKm,diff,kmEstimado,avgKmEquipe,ok:kml>=META_KML*0.85||totalLit===0,ultimoAb};
   });
 }
 
@@ -530,7 +528,7 @@ function renderEficiencia(mes){
     var falta=e.totalLit>0?Math.max(0,e.metaKm-e.totalKm):0;
     var mesAntTag=ant.totalLit>0?'<div style="background:var(--bg2);border-radius:6px;padding:8px;margin-top:8px;font-size:11px;color:var(--text3)">📅 <strong>Mês anterior:</strong> '+fN(ant.totalKm,0)+' km · '+fN(ant.totalLit,1)+'L · <strong style="color:'+(ant.kml>=META_KML?"#16a34a":"#d97706")+'">'+fN(ant.kml,1)+' km/L</strong></div>':'';
     var msg='';
-    if(e.kmEstimado&&e.totalLit>0){msg='<div style="background:#dbeafe;border:1px solid #93c5fd;border-radius:8px;padding:10px;margin-top:10px;font-size:12px;color:#1e40af">⚙ <strong>Hodômetro com defeito.</strong> KM estimado pela média da equipe ('+fN(e.avgKmlEquipe,1)+' km/L). Estimativa: '+fN(e.totalKm,0)+'km para '+fN(e.totalLit,1)+'L. Recomendado consertar o hodômetro para dados precisos.</div>'}
+    if(e.kmEstimado&&e.totalLit>0){msg='<div style="background:#dbeafe;border:1px solid #93c5fd;border-radius:8px;padding:10px;margin-top:10px;font-size:12px;color:#1e40af">⚙ <strong>Hodômetro com defeito.</strong> KM estimado pela média de km rodados da equipe ('+fN(e.avgKmEquipe,0)+' km). Com '+fN(e.totalLit,1)+'L abastecidos: '+fN(e.kml,1)+' km/L.'+(e.kml<META_KML?' <strong style="color:#991b1b">Abaixo da meta — verificar consumo real.</strong>':' Dentro da meta.')+'  Recomendado consertar o hodômetro.</div>'}
     else if(e.totalLit>0&&e.kml>=META_KML){msg='<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px;margin-top:10px;font-size:12px;color:#166534">✅ Bom desempenho! Rodou '+fN(e.totalKm,0)+'km com '+fN(e.totalLit,1)+'L — atingiu a meta de '+META_KML+'km/L. Continue assim!</div>'}
     else if(e.totalLit>0&&e.kml<META_KML*0.85){msg='<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px;margin-top:10px;font-size:12px;color:#991b1b">⚠ Rodou apenas '+fN(e.totalKm,0)+'km com '+fN(e.totalLit,1)+'L — deveria ter rodado '+fN(e.metaKm,0)+'km ('+META_KML+'km/L). <strong>Faltaram '+fN(falta,0)+'km.</strong> Verificar: condução, pneus, revisão da moto?</div>'}
     else if(e.totalLit>0){msg='<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px;margin-top:10px;font-size:12px;color:#92400e">⚠ Próximo da meta. Rodou '+fN(e.totalKm,0)+'km com '+fN(e.totalLit,1)+'L. Faltam '+fN(falta,0)+'km para atingir '+META_KML+'km/L.</div>'}
